@@ -1,3 +1,4 @@
+# loading data
 
 library(quantmod)
 library(tidyverse)
