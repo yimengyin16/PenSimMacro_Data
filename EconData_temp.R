@@ -2,6 +2,7 @@
 
 library(quantmod)
 library(tidyverse)
+library(readxl)
 
 # Intro to quantmod
 #    1. quantmod http://statmath.wu.ac.at/~hornik/QFS1/quantmod-vignette.pdf
@@ -10,16 +11,10 @@ library(tidyverse)
 # Intro to zee  cran.r-project.org/web/packages/zoo/vignettes/zoo-quickref.pdf
 
 
-# Loading stock prices
-
-
-
-# Monthly SP500
-
+# Loading stock prices  ####
 finVars <- c(c("^GSPC", 
 							 "^W5000",
 							 "^RUA"    # Russell 3000 Index 
-							 
 							 ))
 
 financial <- new.env()
@@ -43,6 +38,15 @@ GSPC.pctchange %>% head()
 
 
 
+# Shiller data
+dir_data_raw <- "data_raw/"
+ShillerData <- read_xls(paste0(dir_data_raw,"RShiller_data.xls"), sheet = "Data", skip = 7)
+
+
+
+
+
+
 # Loading FRED data
 # http://rstudio-pubs-static.s3.amazonaws.com/24858_1f006c3965614b0099c963913100e9f0.html
 
@@ -51,13 +55,13 @@ GSPC.pctchange %>% head()
 econVars <- c(
   "GDPC1",           # Quarterly, Seasonally adjusted GDP level, billion
   "A191RL1Q225SBEA", # Quarterly, seasonally adjusted GDP growth, annual rate
-  "TB3MS",            # 3-Month Treasury-bill: secondary market rate, monthly
+  "TB3MS",           # 3-Month Treasury-bill: secondary market rate, monthly
   "GS2",             # 2-Year Treasury constant maturity rate
   "GS10",            # 10-Year Treasury constant maturity rate
-  "GS30",             # 30-Year Treasury constant maturity rate
+  "GS30",            # 30-Year Treasury constant maturity rate
   
   "CPIAUCSL",        # CPI-U, seasonally adjusted
-  "CPILFESL",         # core CPI: CPI-U less food and energy, seasonally adjusted 
+  "CPILFESL",        # core CPI: CPI-U less food and energy, seasonally adjusted 
   
   "UNRATE"           # civilian unemployent rate, seasonally adjusted
   
@@ -79,6 +83,11 @@ CPI_U 	 <- macroData$CPIAUCSL
 CPI_core <- macroData$CPILFESL
 
 SP500 <- macroData$SP500
+
+
+
+
+
 
 
 
