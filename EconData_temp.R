@@ -8,10 +8,15 @@ library(readxl)
 #    1. quantmod http://statmath.wu.ac.at/~hornik/QFS1/quantmod-vignette.pdf
 #    2. https://www.quantinsti.com/blog/a-guide-on-r-quantmod-package-how-to-get-started/
 
-# Intro to zee  cran.r-project.org/web/packages/zoo/vignettes/zoo-quickref.pdf
+# Intro to zoo  cran.r-project.org/web/packages/zoo/vignettes/zoo-quickref.pdf
 
 
-# Loading stock prices  ####
+
+dir_data_raw <- "data_raw/"
+
+
+
+# Loading yahoo finance  ####
 finVars <- c(c("^GSPC", 
 							 "^W5000",
 							 "^RUA"    # Russell 3000 Index 
@@ -38,16 +43,15 @@ GSPC.pctchange %>% head()
 
 
 
-# Shiller data
-dir_data_raw <- "data_raw/"
+# Loading Shiller data ####
+
 ShillerData <- read_xls(paste0(dir_data_raw,"RShiller_data.xls"), sheet = "Data", skip = 7)
 
 
 
 
 
-
-# Loading FRED data
+# Loading FRED data ####
 # http://rstudio-pubs-static.s3.amazonaws.com/24858_1f006c3965614b0099c963913100e9f0.html
 
 # Major economic variables
@@ -85,13 +89,47 @@ CPI_core <- macroData$CPILFESL
 SP500 <- macroData$SP500
 
 
+# Loading SBBI data
 
+SBBI_AppenB_file <- paste0(dir_data_raw, "SBBI2016_AppendixB.xlsx")
 
+SBBI_AppenB_cell <- "A3:M94"
 
+SBBI_AppenB_var <- c("LCapStock_TRI",
+										 "LCapStock_CAI",
+										 "SCapStock_TRI",
+										 "CBond_TRI",
+										 "LTGBond_TRI",
+										 "MTGBond_TRI",
+										 "TBills_TRI",
+										 "Inflation_Index")
 
+df <- read_excel(SBBI_AppenB_file, SBBI_AppenB_var[1], SBBI_AppenB_cell)
 
+df_m <- df %>% #select(df, Year:Dec) %>% 
+	gather(month, var, -Year) %>% 
+	mutate(month = match(month, substr(month.name, 1, 3)),
+				 varName = SBBI_AppenB_var[1]) %>% 
+	arrange(Year, month, var) %>% 
+	rename(year = Year)
+	
+fn <- function(fileName, varName, cells){
+	  read_excel(fileName, varName, cells) %>% 
+		gather(month, var, -Year) %>% 
+		mutate(month   = match(month, substr(month.name, 1, 3)),
+					 varName = varName) %>% 
+		arrange(Year, month, var) %>% 
+		rename(year = Year)
+}
 
+x <- 
+		sapply(SBBI_AppenB_var, fn, fileName = SBBI_AppenB_file, cells = SBBI_AppenB_cell, simplify = FALSE) %>% 
+		bind_rows() %>%
+	  mutate(varName = factor(varName, levels = SBBI_AppenB_var)) %>% 
+	  spread(varName, var)
+	
 
+x1 <- x$LCapStock_TRI
 
 
 
