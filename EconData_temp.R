@@ -1,6 +1,18 @@
 # loading data
 
 
+#**********************************************************************
+#                          Notes                                   ####
+#**********************************************************************
+
+# Goal:
+		# Load and organize data from each source into the same format that is easy for merge operations. 
+		# The format:
+		# 	- data frame
+		# 	- Three date variables: year, month, date(in Date format)
+		# 	- All variables, within and across data sources, have unique names.
+
+
 
 #**********************************************************************
 #                           Packages                               ####
@@ -10,6 +22,10 @@ library(quantmod)
 library(Quandl)
 library(tidyverse)
 library(readxl)
+library(lubridate)
+library(xts)
+library(zoo)
+library(magrittr)
 
 # Intro to quantmod
 #    1. quantmod http://statmath.wu.ac.at/~hornik/QFS1/quantmod-vignette.pdf
@@ -58,36 +74,56 @@ FRED_vars <- c(
 
 # loading data through Quandl (2000 calls per 10 mins). 
 df_FRED <- Quandl(paste0("FRED/", FRED_vars), order = "asc")
+names(df_FRED) <- str_replace_all(names(df_FRED), c("FRED." = "", " - Value" = ""))
 
+df_FRED %<>% 
+	mutate(year    = year(Date),
+				 month   = month(Date),
+				 yearMon = as.yearmon(Date)) %>% 
+	select(year, month, yearMon, everything(), -Date) %>% 
+	rename(GDP_FRED = GDPC1, 
+				 GDP_growth_FRED = A191RL1Q225SBEA,
+				 TBill3m_FRED  = TB3MS,
+				 TBond2y_FRED  = GS2,
+				 Tbond10y_FRED = GS10,
+				 Tbond30y_FRED = GS30,
+				 CPIU_SA_FRED  = CPIAUCSL,
+				 CPIU_NA_FRED  = CPIAUCNS,
+				 CPIc_SA_FRED  = CPILFESL,
+				 unrate_SA_FRED= UNRATE       
+	)
+names(df_FRED)	
 
 # data through quantmod
 macroData <- new.env()
 getSymbols("AAA", src = "FRED", env = macroData )
-AAA <- macroData$AAA
+df_AAA <- macroData$AAA %>% as.data.frame()
+df_AAA %<>%  
+	mutate(Date = row.names(df_AAA),
+         year  = year(Date),
+				 month   = month(Date),
+				 yearMon = as.yearmon(Date)) %>%
+	rename(CBond_Yield_AAA = AAA) %>% 
+	select(year, month, yearMon, everything(), -Date) 
 
 
-# GDP_ql <- macroData$GDPC1
-# GDP_qr <- macroData$A191RL1Q225SBEA
-# 
-# TRate_3m  <- macroData$TB3MS
-# TRate_2y  <- macroData$GS2
-# TRate_10y <- macroData$GS10
-# TRate_30y <- macroData$GS30
-# 
-# CPI_U 	 <- macroData$CPIAUCSL
-# CPI_core <- macroData$CPILFESL
-# 
-# SP500 <- macroData$SP500
-# 
-# bind_cols(GDP_ql, GDP_qr) 
+# Merging data
+df_FRED <- full_join(df_FRED, df_AAA)
+head(df_FRED)
+tail(df_FRED)
 
+# as.yearmon()
+# x <- as.yearmon(date("2001-01-01"))
+# x %>% month
+# as.Date(x)
+# as.yearmon("2010-1")
 
 
 #**********************************************************************
 #                     Loading data from SBBI Yearbook              ####
 #**********************************************************************
 
- # Data from SBBI2016 yearbook appendix B: 1/1926~12/2015
+# Data from SBBI2016 yearbook appendix B: 1/1926~12/2015
 SBBI_AppendB_vars <- c("LCapStock_TRI",
 										 	"LCapStock_CAI",
 										 	"SCapStock_TRI",
@@ -114,55 +150,63 @@ df_SBBI_AppenB <-
 		sapply(SBBI_AppendB_vars, fn, fileName = SBBI_AppendB_file, cells = SBBI_AppendB_cell, simplify = FALSE) %>% 
 		bind_rows() %>%
 	  mutate(varName = factor(varName, levels = SBBI_AppendB_vars)) %>% 
-	  spread(varName, var)
+	  spread(varName, var) %>% 
+	  mutate(yearMon = as.yearmon(paste(year,  month, sep =  "-"))) %>% 
+	  select(year, month, yearMon, everything())
+
 	
-df_SBBI_AppenB
+head(df_SBBI_AppenB)
+tail(df_SBBI_AppenB)
 
 
 #**********************************************************************
 #                     Loading R. Shiller data                      ####
 #**********************************************************************
-df_ShillerData <- read_xls(paste0(dir_data_raw,"RShiller_data.xls"), sheet = "Data", skip = 7)
-
-
+df_Shiller <- read_xls(paste0(dir_data_raw,"RShiller_data.xls"), sheet = "Data", skip = 7) %>% 
+	mutate(yearMon = str_replace(as.character(Date), "\\.", "-") %>% as.yearmon(),
+				 year  = year(yearMon),
+				 month = month(yearMon)) %>% 
+	select(year, month, yearMon, everything(), -Date)
+	
+head(df_Shiller)
+tail(df_Shiller)
 
 
 
 #**********************************************************************
-#                     Loading other data                    ####
+#                     Loading yahoo finance data                    ####
 #**********************************************************************
 
-# Loading yahoo finance  ####
-finVars <- c(c("^GSPC", 
-							 "^W5000",
-							 "^RUA",    # Russell 3000 Index 
-							 "^SP500TR"
-))
+yahoo_vars <- c("^GSPC",    #SP500 index (price only)
+						 "^SP500TR"  #SP500 total return 
+				   	 #"^W5000",
+						 #"^RUA"    # Russell 3000 Index 
+)
 
-financial <- new.env()
-getSymbols(finVars, src = "yahoo", env=financial, 
-					 from = as.Date("1960-01-04"), periodicity = "monthly")
+env_yahoo <- new.env()
+getSymbols(yahoo_vars, src = "yahoo", env = env_yahoo, 
+					 from = "1900-01-01", periodicity = "monthly")
 
-SP500 <-   financial$GSPC
-W5000 <-   financial$W5000
-R3000 <-   financial$RUA
-SP500TR <- financial$SP500TR %>% Cl
+SP500   <- env_yahoo$GSPC %>% Cl     # get closing prices
+SP500TR <- env_yahoo$SP500TR %>% Cl  # get closing prices
 
-Cl(financial$SP500TR)
+df_yahoo <- cbind(SP500, SP500TR) %>% as.data.frame
+df_yahoo %<>%
+	mutate(Date    = row.names(df_yahoo),
+				 year    = year(Date),
+				 month   = month(Date),
+				 yearMon = as.yearmon(Date)) %>%
+	rename(SP500 = GSPC.Close,
+				 SP500TR = SP500TR.Close) %>% 
+	select(year, month, yearMon, everything(), -Date)
+	
+head(df_yahoo)
+tail(df_yahoo)
 
-head(SP500)
-head(W5000)
-head(R3000)
 
-SP500TR
-
-# get closing price
-Cl(GSPC)
-
-# get monthly returns
-GSPC.pctchange <- ClCl(GSPC)
-GSPC.pctchange %>% head()
-
+# # get monthly returns
+# GSPC.pctchange <- ClCl(GSPC)
+# GSPC.pctchange %>% head()
 
 
 #**********************************************************************
@@ -172,11 +216,25 @@ GSPC.pctchange %>% head()
 # Stock and Watson estimated monthly real GDP: 1/1959 - 6/2010
 df_GDPmonthly_StockWatson <- read_excel(paste0(dir_data_raw, "MonthlyGDP_StockWatson.xlsx"), "InterpolatedGDP_GDI_rename")
 
+df_GDPmonthly_StockWatson %<>% 
+	mutate(yearMon = paste(year, month, sep = "-") %>% as.yearmon()) %>% 
+  rename(GDP_qtr_SW = RealGDP_Q,
+  			 GDP_mon_SW = RealGDP_M) %>% 
+	select(year, month, yearMon, GDP_mon_SW, GDP_qtr_SW)
+
+
 # Macroeconomic Advisors estimated monthly real GDP 1/1992 - 12/2017
 df_GDPmonthly_MA <- read_excel(paste0(dir_data_raw, "MonthlyGDP_MA.xlsx"), "Data")
 
+df_GDPmonthly_MA %>% 
+	separate(Date, c("year", "month"), " - " ) %>% 
+	mutate(yearMon = paste(month, year) %>% as.yearmon(),
+				 month   = month(yearMon)) %>% 
+	rename(GDP_mon_MA = `Monthly Real GDP Index`,
+				 GDP_nominal_mon_MA = `Monthly Nominal GDP Index`) %>% 
+	select(year, month, yearMon, everything())
+	
 
-df_GDPmonthly_MA
 
 
 
