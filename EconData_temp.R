@@ -13,7 +13,6 @@
 		# 	- All variables, within and across data sources, have unique names.
 
 
-
 #**********************************************************************
 #                           Packages                               ####
 #**********************************************************************
@@ -26,6 +25,7 @@ library(lubridate)
 library(xts)
 library(zoo)
 library(magrittr)
+library(stringr)
 
 # Intro to quantmod
 #    1. quantmod http://statmath.wu.ac.at/~hornik/QFS1/quantmod-vignette.pdf
@@ -41,6 +41,7 @@ library(magrittr)
 #                     Global settings                              ####
 #**********************************************************************
 dir_data_raw <- "data_raw/"
+dir_data_out <- "data_out/"
 Quandl.api_key("rsakY2-RD8pa1JNBk9sd")
 
 
@@ -49,7 +50,6 @@ Quandl.api_key("rsakY2-RD8pa1JNBk9sd")
 #                     Loading data from FRED                       ####
 #**********************************************************************
 
-# Loading FRED data ####
 # http://rstudio-pubs-static.s3.amazonaws.com/24858_1f006c3965614b0099c963913100e9f0.html
 
 
@@ -118,6 +118,26 @@ tail(df_FRED)
 # as.Date(x)
 # as.yearmon("2010-1")
 
+#
+
+df_FRED  %<>% group_by(year) %>% 
+	mutate(
+		GDP_FRED = case_when(
+			month %in% 1:3   ~ as.numeric(GDP_FRED[ 1]),
+			month %in% 4:6   ~ as.numeric(GDP_FRED[ 4]),
+			month %in% 7:9   ~ as.numeric(GDP_FRED[ 7]),
+			month %in% 10:12 ~ as.numeric(GDP_FRED[ 10])
+	),
+  	GDP_growth_FRED = case_when(
+			month %in% 1:3   ~ GDP_growth_FRED[1],
+			month %in% 4:6   ~ GDP_growth_FRED[4],
+			month %in% 7:9   ~ GDP_growth_FRED[7],
+			month %in% 10:12 ~ GDP_growth_FRED[10]
+	)
+)
+
+
+
 
 #**********************************************************************
 #                     Loading data from SBBI Yearbook              ####
@@ -146,7 +166,7 @@ fn <- function(fileName, varName, cells){
 		rename(year = Year)
 }
 
-df_SBBI_AppenB <- 
+df_SBBI_AppendB <- 
 		sapply(SBBI_AppendB_vars, fn, fileName = SBBI_AppendB_file, cells = SBBI_AppendB_cell, simplify = FALSE) %>% 
 		bind_rows() %>%
 	  mutate(varName = factor(varName, levels = SBBI_AppendB_vars)) %>% 
@@ -155,8 +175,8 @@ df_SBBI_AppenB <-
 	  select(year, month, yearMon, everything())
 
 	
-head(df_SBBI_AppenB)
-tail(df_SBBI_AppenB)
+head(df_SBBI_AppendB)
+tail(df_SBBI_AppendB)
 
 
 #**********************************************************************
@@ -203,7 +223,6 @@ df_yahoo %<>%
 head(df_yahoo)
 tail(df_yahoo)
 
-
 # # get monthly returns
 # GSPC.pctchange <- ClCl(GSPC)
 # GSPC.pctchange %>% head()
@@ -236,9 +255,9 @@ df_GDPmonthly_MA %>%
 	
 
 
-
-
-
+save(df_FRED, df_SBBI_AppendB, df_Shiller, df_yahoo,
+		 df_GDPmonthly_StockWatson, df_GDPmonthly_MA,
+		 file = paste0(dir_data_out, "dataSources.RData"))
 
 
 
