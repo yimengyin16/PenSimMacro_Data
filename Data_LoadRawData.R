@@ -61,6 +61,7 @@ FRED_vars <- c(
   "TB3MS",           # 3-Month Treasury-bill: secondary market rate, monthly
   "GS2",             # 2-Year  Treasury constant maturity rate
   "GS10",            # 10-Year Treasury constant maturity rate
+  "GS20",            # 10-Year Treasury constant maturity rate
   "GS30",            # 30-Year Treasury constant maturity rate
   
   "CPIAUCSL",        # CPI-U, seasonally adjusted
@@ -153,8 +154,19 @@ SBBI_AppendB_vars <- c("LCapStock_TRI",
 										 	"TBills_TRI",
 										 	"Inflation_Index")  
 
+SBBI_AppendA_vars <- c("LTGBond_TRI",
+	                     "MTGBond_TRI",
+	                     "LTGBond_Yield",
+											 "MTGBond_Yield",
+											 "CBond_TR") 
+
 SBBI_AppendB_file <- paste0(dir_data_raw, "SBBI2016_AppendixB.xlsx")
 SBBI_AppendB_cell <- "A3:M94"
+
+SBBI_AppendA_file <- paste0(dir_data_raw, "SBBI2016_AppendixA.xlsx")
+SBBI_AppendA_cell <- "A3:M93"
+
+
 
 fn <- function(fileName, varName, cells){
 	  # a function to read a single sheet and convert it into long format
@@ -166,6 +178,7 @@ fn <- function(fileName, varName, cells){
 		rename(year = Year)
 }
 
+
 df_SBBI_AppendB <- 
 		sapply(SBBI_AppendB_vars, fn, fileName = SBBI_AppendB_file, cells = SBBI_AppendB_cell, simplify = FALSE) %>% 
 		bind_rows() %>%
@@ -174,10 +187,20 @@ df_SBBI_AppendB <-
 	  mutate(yearMon = as.yearmon(paste(year,  month, sep =  "-"))) %>% 
 	  select(year, month, yearMon, everything())
 
-	
+df_SBBI_AppendA <- 
+	sapply(SBBI_AppendA_vars, fn, fileName = SBBI_AppendA_file, cells = SBBI_AppendA_cell, simplify = FALSE) %>% 
+	bind_rows() %>%
+	mutate(varName = factor(varName, levels = SBBI_AppendA_vars)) %>% 
+	spread(varName, var) %>% 
+	mutate(yearMon = as.yearmon(paste(year,  month, sep =  "-"))) %>% 
+	select(year, month, yearMon, everything())
+
+
 head(df_SBBI_AppendB)
 tail(df_SBBI_AppendB)
 
+head(df_SBBI_AppendA)
+tail(df_SBBI_AppendA)
 
 #**********************************************************************
 #                     Loading R. Shiller data                      ####
@@ -186,6 +209,7 @@ df_Shiller <- read_xls(paste0(dir_data_raw,"RShiller_data.xls"), sheet = "Data",
 	mutate(yearMon = str_replace(as.character(Date), "\\.", "-") %>% as.yearmon(),
 				 year  = year(yearMon),
 				 month = month(yearMon)) %>% 
+	filter(!is.na(year)) %>% 
 	select(year, month, yearMon, everything(), -Date)
 	
 head(df_Shiller)
@@ -239,25 +263,30 @@ df_GDPmonthly_StockWatson %<>%
 	mutate(yearMon = paste(year, month, sep = "-") %>% as.yearmon()) %>% 
   rename(GDP_qtr_SW = RealGDP_Q,
   			 GDP_mon_SW = RealGDP_M) %>% 
+	mutate(GDP_qtr_SW = as.numeric(GDP_qtr_SW),
+				 GDP_mon_SW = as.numeric(GDP_mon_SW)) %>% 
 	select(year, month, yearMon, GDP_mon_SW, GDP_qtr_SW)
 
 
 # Macroeconomic Advisors estimated monthly real GDP 1/1992 - 12/2017
 df_GDPmonthly_MA <- read_excel(paste0(dir_data_raw, "MonthlyGDP_MA.xlsx"), "Data")
 
-df_GDPmonthly_MA %>% 
-	separate(Date, c("year", "month"), " - " ) %>% 
+df_GDPmonthly_MA %<>% 
+	separate(Date, c("year", "month"), " - " , convert = TRUE) %>% 
 	mutate(yearMon = paste(month, year) %>% as.yearmon(),
 				 month   = month(yearMon)) %>% 
 	rename(GDP_mon_MA = `Monthly Real GDP Index`,
 				 GDP_nominal_mon_MA = `Monthly Nominal GDP Index`) %>% 
 	select(year, month, yearMon, everything())
 	
+head(df_GDPmonthly_MA)
 
-
-save(df_FRED, df_SBBI_AppendB, df_Shiller, df_yahoo,
+save(df_FRED, 
+		 df_SBBI_AppendA,
+		 df_SBBI_AppendB, 
+		 df_Shiller, df_yahoo,
 		 df_GDPmonthly_StockWatson, df_GDPmonthly_MA,
-		 file = paste0(dir_data_out, "dataSources.RData"))
+		 file = paste0(dir_data_raw, "dataRaw.RData"))
 
 
 
