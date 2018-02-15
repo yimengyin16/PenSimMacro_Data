@@ -28,8 +28,11 @@ library(tseries)  #
 library(zoo)
 library(xts)
 
+library(timetk)
+library(tidyquant)
 
 library(lubridate)
+# check tidyquant, timetk, sweep, tibbletime
 
 # Intro to zoo  cran.r-project.org/web/packages/zoo/vignettes/zoo-quickref.pdf
 
@@ -124,8 +127,19 @@ df_dataWilkie <- df_dataAll %>% select(year, month, yearMon, one_of(vars_wilkie)
 # Linear regression models : A convenience interface to lm() for estimating OLS and 2SLS models based on time series data is dynlm. Linear regression models with AR error terms via GLS is possible using gls() from nlme.
 
 
+df <- data.frame(value = 1:5, var2 = 2:6, yearMon = as.yearmon("2017-01") + 0:4/12)
+df
 
+as.xts(df, order.by = df$yearMon)
+tk_xts(df, date_var = yearMon)
+tk_xts(df) %>% as.data.frame() %>% mutate(yearMon = row.names(.))
 
+x <- read.zoo(df, index.column = "yearMon") %>% as.xts # column names are lost
+class(x)
+
+x[month(index(x)) %in% c(2:3) ]
+x[index(x) > "2017-03" ] # cannot omit "-"
+x["201703/05"]
 
 
 
