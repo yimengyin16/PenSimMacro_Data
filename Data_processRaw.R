@@ -64,12 +64,6 @@ df_dataAll <- Reduce(full_join, list(df_FRED,
 #df_FRED %>% head
 
 
-#**********************************************************************
-#                Construct quarterly and annual data               ####
-#**********************************************************************
-df_dataAll_q <- df_dataAll %>% filter(month %in% c(3, 6, 9, 12))
-df_dataAll_y <- df_dataAll %>% filter(month %in% 6)
-
 
 
 #**********************************************************************
@@ -141,6 +135,15 @@ df3 %>% select(yearMon, diff_SW, diff_MA) %>%
 df4 <- 
 	df_dataAll %>% 
 	select(yearMon, CBond_TR, CBond_TRI, CBond_Yield_AAA)
+
+
+
+#**********************************************************************
+#                Construct quarterly and annual data               ####
+#**********************************************************************
+df_dataAll_q <- df_dataAll %>% filter(month %in% c(3, 6, 9, 12))
+df_dataAll_y <- df_dataAll %>% filter(month %in% 6)
+
 
 
 
