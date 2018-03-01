@@ -45,7 +45,7 @@ library(tidyverse)
 library(readxl)
 library(magrittr)
 library(stringr)
-
+library(forcats)
 
 
 # packages for time series modeling
@@ -664,20 +664,72 @@ inflation_ewa_interest
 #                        Try simulations                           ####
 #**********************************************************************
 
-# Inflation
-sample_period <- "1951/1989"
-mod_infl_y1 <- Arima(df_inflation_y[sample_period , "l_inflation"],   c(1, 1, 0), include.constant = TRUE) # AR(1)
-mod_infl_y2 <- Arima(df_inflation_y[sample_period , "dl_inflation"],  c(1, 0, 0)) # AR(1)
-mod_infl_y3 <- Arima(df_inflation_y[sample_period , "dl_inflation"],  c(0, 1, 0)) # random walk in changes of infl rate, worse than AR(1)
+## Inflation
 
-mod_infl_y1 
-mod_infl_y2
+# Models:
+ #1a. AR(1) of inflation rate on 1951-1989
+ #1b. AR(1) of inflation rate on 1951-2015
+ #2a. ARIMA(0, 1, 0) of inflation rate on 1951-1989, mean forced to 0
+ #2b. ARIMA(0, 1, 0) of inflation rate on 1951-2015, mean forced to 0
+ #3. HSZ2016 estimate on 1951-1989
 
-simulate(mod_infl_y1, 30) %>% plot
-simulate(mod_infl_y2, 30) %>% plot
 
-df_inflation_y[sample_period , "l_inflation"] %>% plot
+mdl_infl_y1a <- Arima(df_inflation_y["1951/1989" , "dl_inflation"],  c(1, 0, 0)) # AR(1)
+mdl_infl_y1b <- Arima(df_inflation_y["1951/2015" , "dl_inflation"],  c(1, 0, 0)) # AR(1)
+mdl_infl_y2a <- Arima(df_inflation_y["1951/1989" , "dl_inflation"],  c(0, 1, 0)) # random walk in changes of infl rate 
+mdl_infl_y2b <- Arima(df_inflation_y["1951/2015" , "dl_inflation"],  c(0, 1, 0)) # random walk in changes of infl rate
 
+mdl_infl_y1a
+mdl_infl_y1b
+mdl_infl_y2a
+mdl_infl_y2b
+
+
+ # HSZ2016 estimate 
+mdl_infl_y3 <- mod_infl_y1a
+mdl_infl_y3$coef   <- c(ar1 = 0.8067, intercept = 0.0396)
+mdl_infl_y3$sigma2 <- 0.0189^2 # 0.00035721
+
+# Check simulated series
+Arima(simulate(mdl_infl_y3, 100), order = c(1, 0, 0))
+
+
+
+# Simulation
+nsim <- 2000
+nyear_sim <- 100
+
+set.seed(1234); sim_infl_mdl_infl_y1a <- replicate(nsim,simulate(mdl_infl_y1a, 100, future = TRUE)) %>% as.tibble() %>% mutate(mdl = "y1a", year = seq_len(nyear_sim))
+set.seed(1234); sim_infl_mdl_infl_y1b <- replicate(nsim,simulate(mdl_infl_y1b, 100, future = TRUE)) %>% as.tibble() %>% mutate(mdl = "y1b", year = seq_len(nyear_sim))
+set.seed(1234); sim_infl_mdl_infl_y2a <- replicate(nsim,simulate(mdl_infl_y2a, 100, future = TRUE)) %>% as.tibble() %>% mutate(mdl = "y2a", year = seq_len(nyear_sim))
+set.seed(1234); sim_infl_mdl_infl_y2b <- replicate(nsim,simulate(mdl_infl_y2b, 100, future = TRUE)) %>% as.tibble() %>% mutate(mdl = "y2b", year = seq_len(nyear_sim))
+set.seed(1234); sim_infl_mdl_infl_y3  <- replicate(nsim,simulate(mdl_infl_y3,  100, future = TRUE)) %>% as.tibble() %>% mutate(mdl = "y3" , year = seq_len(nyear_sim))
+
+x <- sim_infl_mdl_infl_y3 %>% 
+	gather(sim, value, -year, -mdl)
+x %>% head
+
+x %<>% group_by(year) %>% 
+	summarize(
+		        q10 = quantile(value, 0.10),
+						q25 = quantile(value, 0.25),
+						q50 = quantile(value, 0.50),
+						q75 = quantile(value, 0.75),
+						q90 = quantile(value, 0.90),
+						mdl = unique(mdl))
+x %>% head()
+
+x %>% gather(type, value, -year, - mdl) %>% 
+	mutate(type = as.factor(type) %>% fct_rev) %>% 
+	ggplot(aes(x = year, y = value, color = type)) + theme_bw() + 
+	geom_line() +
+	geom_point() +
+	coord_cartesian(ylim = c(0, 0.1)) + 
+	scale_y_continuous(breaks = seq(0, 1, 0.01))
+
+
+sim_infl_mod_infl_y1a %>% head
+sim_infl_mod_infl_y3  %>% head
 
 
 
