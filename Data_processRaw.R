@@ -13,7 +13,6 @@
   # Annual data:    use June series, HSZ2016, p28
 
 
-
 # Issue
   # merging issue with Shiller data. 
 
@@ -122,7 +121,7 @@ df3 %>% select(yearMon, diff_SW, diff_MA) %>%
 # S-W GDP are about 9-10% lower than the official GDP, and the difference increases over time.
 # MA GDP are quite close to the official GDP. Differences generally within 1%
 
-# Monthly GDP looks not reliable enough. 
+# Monthly GDP seems not reliable enough. 
 # For now, should focus on quartly and annual data. 
 
 

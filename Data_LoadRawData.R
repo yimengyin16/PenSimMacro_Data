@@ -42,7 +42,11 @@ library(stringr)
 #**********************************************************************
 dir_data_raw <- "data_raw/"
 dir_data_out <- "data_out/"
-Quandl.api_key("rsakY2-RD8pa1JNBk9sd")
+Quandl.api_key("rsakY2-RD8pa1JNBk9sd") 
+
+# Note for Don: The api key is associated with my Quandl account. 
+# You may want to register to obtain you own api key (Account settings -> API Key)
+
 
 
 
@@ -68,7 +72,7 @@ FRED_vars <- c(
   "CPIAUCNS",        # CPI_U, not seasonally adjusted
   "CPILFESL",        # core CPI: CPI-U less food and energy, seasonally adjusted 
   
-  #"AAA",             # Moody's Seasoned Aaa Corporate Bond Yield, monthly not seasonally adjusted
+  #"AAA",            # Moody's Seasoned Aaa Corporate Bond Yield, monthly not seasonally adjusted
   
   "UNRATE"           # civilian unemployent rate, seasonally adjusted
 )
@@ -227,6 +231,7 @@ yahoo_vars <- c("^GSPC",    #SP500 index (price only)
 						 #"^RUA"    # Russell 3000 Index 
 )
 
+# use quantmod package
 env_yahoo <- new.env()
 getSymbols(yahoo_vars, src = "yahoo", env = env_yahoo, 
 					 from = "1900-01-01", periodicity = "monthly")

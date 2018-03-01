@@ -12,28 +12,6 @@
   # Simulate ARIMA process with initial values and regressors
 
 
-## Results
-
-
-# GDP
-
-# ARIMA modeling: 
- # Annual GDP growth rates tend to be random walk
- # Quarterly GDP growth 
-
-
-
-# Inflation
-
-
-# Dividend Yield 
-
-
-# Dividend Index
-
-
-# Long term Corp Bond rate
-
 
 
 
@@ -46,7 +24,9 @@ library(readxl)
 library(magrittr)
 library(stringr)
 library(forcats)
-
+library(grid)
+library(gridExtra)
+library(scales)
 
 # packages for time series modeling
 library(astsa)    # companion package
@@ -99,101 +79,33 @@ load(paste0(dir_data_out, "dataAll.RData"))
 #   - SBBI capital appreciation index
 #   - SP500 index
 # 4. Long-term bond yield index
-#   - SBBI long-term corb bond yield
-#   - SBBI long-term gov bond yield
+#   - x SBBI long-term corb bond yield
+#   - x SBBI long-term gov bond yield
 #   - Moody's long-term bond yield
 # 5. Long-term bond total return
 #   - SBBI long-term corb bond total return index
 #   - SBBI long-term gov bond  total return index
 # 6. GDP
 #   - FRED quarterly GDP 
-#   - Stock-Watson monthly GDP
-#   - MA monthly GDP
+#   - x Stock-Watson monthly GDP
+#   - x MA monthly GDP
 
-vars_wilkie <- c("Inflation_Index",
-					       "CPIU_SA_FRED",
-					       "CPIU_NA_FRED",
+vars_wilkie <- c("Inflation_Index", # SBBI price index, based on CPI-U, not seasonally adjusted
+					       "CPIU_SA_FRED",    # CPI-U, seasonally adjusted
+					       "CPIU_NA_FRED",    # CPI-U, not seasonally adjusted
 					       
-					       "LCap_TRI",
-					       "LCap_CAI",
+					       "LCap_TRI", # SBBI Large Cap total return
+					       "LCap_CAI", # SBBI Large Cap capital appreciation
 					       
-					       "CBond_TRI",
-					       "LTGBond_TRI",
+					       "CBond_TRI",   # SBBI corporate bond total return index
+					       "LTGBond_TRI", # SBBI government bond total return index
 					       
-					       "CBond_Yield_AAA",
+					       "CBond_Yield_AAA", # Moody's AAA long-term bond yield
 					       
-					       "GDP_FRED"
+					       "GDP_FRED"  # GDP
 )
 
-df_dataWilkie <- df_dataAll %>% select(year, month, yearMon, one_of(vars_wilkie))
-
-
-#**********************************************************************
-#      Review time series classes and functions in R               ####
-#**********************************************************************
-
-# 
-
-
-# Time series classes
-#		ts
-#		zoo
-#		xts
-#   timeSeries
-
-# Model
-
-# ARIMA model: 
-#   arima: from stats
-#   Arima: from forecast
-#   arimax: from TSA, ARIMA with transfer function
-# 
-
-
-# Structural change : R is particularly strong when dealing with structural changes and changepoints in parametric models, see strucchange and segmented.
-
-# Linear regression models : A convenience interface to lm() for estimating OLS and 2SLS models based on time series data is dynlm. Linear regression models with AR error terms via GLS is possible using gls() from nlme.
-
-
-df <- data.frame(value = 1:5, var2 = 2:6, yearMon = as.yearmon("2017-01") + 0:4/12)
-df
-
-as.xts(df, order.by = df$yearMon)
-tk_xts(df, date_var = yearMon)
-tk_xts(df) %>% as.data.frame() %>% mutate(yearMon = row.names(.))
-
-x <- read.zoo(df, index.column = "yearMon") %>% as.xts # column names are lost
-class(x)
-
-x[month(index(x)) %in% c(2:3) ]
-x[index(x) > "2017-03" ] # cannot omit "-"
-x["201703/05"]
-
-
-# Transfer function models
-
-
-x <- df_dataAll_q %>% 
-	select(yearMon,
-		     GDP = GDP_FRED,
-				 infl = CPIU_SA_FRED) %>% 
-	mutate(dl_GDP  =  log(GDP/lag(GDP)),
-				 dl_infl = log(infl/lag(infl)),
-				 d2l_infl = dl_infl - lag(dl_infl)
-				 ) %>% 
-	tk_xts(date_var = yearMon)
-
-x["1948/2015"]
-
-plot(x["1950/2007", "d2l_infl"])
-acf2(x["1983/2015", "d2l_infl"])
-sarima(x["1950/2007", "d2l_infl"], 5, 0, 2)
-auto.arima(x["1950/2015", "d2l_infl"], seasonal = FALSE)
-
-# regARIMA model with fixed parameter for regressors. 
-Arima(x["1983/2015", "dl_GDP"], order = c(1, 0, 1), xreg = x["1983/2015", "d2l_infl"], 
-			fixed = c(NA, NA, NA, 1)) 
-
+# df_dataWilkie <- df_dataAll %>% select(year, month, yearMon, one_of(vars_wilkie))
 
 
 
@@ -347,7 +259,7 @@ Arima(df_inflation_y["1927/2015","dl_inflation" ], order = c(1, 0, 0))
 Arima(df_inflation_y["1950/2015","dl_inflation" ], order = c(1, 0, 0))
 
 mod_inflation_y <- Arima(df_inflation_y["1927/2015", "dl_inflation" ], order = c(1, 0, 0))
-df_inflation_y  <- cbind(df_inflation_y, infl_residual = xts(mod_inflation_y$residuals, index(df_inflation_y)))
+df_inflation_y  <- cbind(df_inflation_y["1927/2015",], infl_residual = xts(mod_inflation_y$residuals, index(df_inflation_y["1927/2015",])))
 
 
 ## diagnostic of AR(1)
@@ -543,7 +455,7 @@ Arima(df_dividend_y[sample_period, "dl_LCap_DivI"], order = c(0, 0, 1),
 
 
 ## Issues:
- # Model parameter estimates are sensitive sample period. Including data after 2010 greatly increases the estiamte of intercept
+ # Model parameter estimates are sensitive to sample period. Including data after 2010 greatly increases the estiamte of intercept
  # Parameter estiamtes are not consistent with HSZ2016 paper. (p6). We have smaller MA1 parameter and greater intercept parameter
 
 
@@ -647,7 +559,7 @@ mod_interest_real$sigma2^0.5 # much lower than the estimates in HSZ2016
 
 
 ## Wilkie model inflation part
-inflation_ewa_interest <- get_ewa(df_interest_y["1927/2015", "dl_inflation"], dc)
+inflation_ewa_interest <- get_ewa(df_interest_y["1951/2015", "dl_inflation"], dc)
 inflation_ewa_interest 
 
 # set c_min, so that
@@ -667,16 +579,16 @@ inflation_ewa_interest
 ## Inflation
 
 # Models:
- #1a. AR(1) of inflation rate on 1951-1989
+ #1a. AR(1) of inflation rate on 1951-1984
  #1b. AR(1) of inflation rate on 1951-2015
- #2a. ARIMA(0, 1, 0) of inflation rate on 1951-1989, mean forced to 0
- #2b. ARIMA(0, 1, 0) of inflation rate on 1951-2015, mean forced to 0
- #3. HSZ2016 estimate on 1951-1989
+ #2a. ARIMA(0, 1, 0) of inflation rate on 1951-1984
+ #2b. ARIMA(0, 1, 0) of inflation rate on 1951-2015
+ #3. HSZ2016 (Hardy, Saunders, Zhang, 2016) estimates on 1951-1984
 
 
-mdl_infl_y1a <- Arima(df_inflation_y["1951/1989" , "dl_inflation"],  c(1, 0, 0)) # AR(1)
+mdl_infl_y1a <- Arima(df_inflation_y["1951/1984" , "dl_inflation"],  c(1, 0, 0)) # AR(1)
 mdl_infl_y1b <- Arima(df_inflation_y["1951/2015" , "dl_inflation"],  c(1, 0, 0)) # AR(1)
-mdl_infl_y2a <- Arima(df_inflation_y["1951/1989" , "dl_inflation"],  c(0, 1, 0)) # random walk in changes of infl rate 
+mdl_infl_y2a <- Arima(df_inflation_y["1951/1984" , "dl_inflation"],  c(0, 1, 0)) # random walk in changes of infl rate 
 mdl_infl_y2b <- Arima(df_inflation_y["1951/2015" , "dl_inflation"],  c(0, 1, 0)) # random walk in changes of infl rate
 
 mdl_infl_y1a
@@ -686,51 +598,105 @@ mdl_infl_y2b
 
 
  # HSZ2016 estimate 
-mdl_infl_y3 <- mod_infl_y1a
+mdl_infl_y3 <- mdl_infl_y1a
 mdl_infl_y3$coef   <- c(ar1 = 0.8067, intercept = 0.0396)
 mdl_infl_y3$sigma2 <- 0.0189^2 # 0.00035721
 
 # Check simulated series
 Arima(simulate(mdl_infl_y3, 100), order = c(1, 0, 0))
-
-
+# OK
 
 # Simulation
-nsim <- 2000
+nsim <- 5000
 nyear_sim <- 100
 
-set.seed(1234); sim_infl_mdl_infl_y1a <- replicate(nsim,simulate(mdl_infl_y1a, 100, future = TRUE)) %>% as.tibble() %>% mutate(mdl = "y1a", year = seq_len(nyear_sim))
-set.seed(1234); sim_infl_mdl_infl_y1b <- replicate(nsim,simulate(mdl_infl_y1b, 100, future = TRUE)) %>% as.tibble() %>% mutate(mdl = "y1b", year = seq_len(nyear_sim))
-set.seed(1234); sim_infl_mdl_infl_y2a <- replicate(nsim,simulate(mdl_infl_y2a, 100, future = TRUE)) %>% as.tibble() %>% mutate(mdl = "y2a", year = seq_len(nyear_sim))
-set.seed(1234); sim_infl_mdl_infl_y2b <- replicate(nsim,simulate(mdl_infl_y2b, 100, future = TRUE)) %>% as.tibble() %>% mutate(mdl = "y2b", year = seq_len(nyear_sim))
-set.seed(1234); sim_infl_mdl_infl_y3  <- replicate(nsim,simulate(mdl_infl_y3,  100, future = TRUE)) %>% as.tibble() %>% mutate(mdl = "y3" , year = seq_len(nyear_sim))
+set.seed(1234); sim_infl_mdl_infl_y1a <- replicate(nsim,simulate(mdl_infl_y1a, nyear_sim, future = TRUE)) %>% as.tibble() %>% mutate(mdl = "y1a", year = seq_len(nyear_sim))
+set.seed(1234); sim_infl_mdl_infl_y1b <- replicate(nsim,simulate(mdl_infl_y1b, nyear_sim, future = TRUE)) %>% as.tibble() %>% mutate(mdl = "y1b", year = seq_len(nyear_sim))
+set.seed(1234); sim_infl_mdl_infl_y2a <- replicate(nsim,simulate(mdl_infl_y2a, nyear_sim, future = TRUE)) %>% as.tibble() %>% mutate(mdl = "y2a", year = seq_len(nyear_sim))
+set.seed(1234); sim_infl_mdl_infl_y2b <- replicate(nsim,simulate(mdl_infl_y2b, nyear_sim, future = TRUE)) %>% as.tibble() %>% mutate(mdl = "y2b", year = seq_len(nyear_sim))
+set.seed(1234); sim_infl_mdl_infl_y3  <- replicate(nsim,simulate(mdl_infl_y3,  nyear_sim, future = TRUE)) %>% as.tibble() %>% mutate(mdl = "y3" , year = seq_len(nyear_sim))
 
-x <- sim_infl_mdl_infl_y3 %>% 
-	gather(sim, value, -year, -mdl)
-x %>% head
+fn_plot <- function(data){
+	
+	df <- data %>% 
+		gather(sim, value, -year, -mdl) %>% 
+		group_by(year) %>% 
+		summarize(
+			q10 = quantile(value, 0.10),
+			q25 = quantile(value, 0.25),
+			q50 = quantile(value, 0.50),
+			q75 = quantile(value, 0.75),
+			q90 = quantile(value, 0.90),
+			mdl = unique(mdl))
+	# df %>% head()
+	
+	fig <- 
+	df %>% gather(percentile, value, -year, - mdl) %>% 
+		mutate(percentile = as.factor(percentile) %>% fct_rev) %>% 
+		ggplot(aes(x = year, y = value, color = percentile)) + theme_bw() + 
+		geom_line() +
+		geom_point() +
+		coord_cartesian(ylim = c(0, 0.1)) + 
+		scale_y_continuous(breaks = seq(0, 1, 0.01))
+}
 
-x %<>% group_by(year) %>% 
+fig_infl_y1a <- fn_plot(sim_infl_mdl_infl_y1a)
+fig_infl_y1b <- fn_plot(sim_infl_mdl_infl_y1b)
+fig_infl_y3  <- fn_plot(sim_infl_mdl_infl_y3)
+
+fig_infl_y2a <- fn_plot(sim_infl_mdl_infl_y2a) # divergent, should not be used for simulation
+fig_infl_y2b <- fn_plot(sim_infl_mdl_infl_y2b) # divergent, should not be used for simulation
+
+fig_infl_y1a
+fig_infl_y1b
+fig_infl_y3
+
+sim_infl <- bind_rows(sim_infl_mdl_infl_y1a,
+											sim_infl_mdl_infl_y1b,
+											sim_infl_mdl_infl_y3 )
+
+df <- sim_infl %>% 
+	gather(sim, value, -year, -mdl) %>% 
+	group_by(year, mdl) %>% 
 	summarize(
-		        q10 = quantile(value, 0.10),
-						q25 = quantile(value, 0.25),
-						q50 = quantile(value, 0.50),
-						q75 = quantile(value, 0.75),
-						q90 = quantile(value, 0.90),
-						mdl = unique(mdl))
-x %>% head()
+		q10 = quantile(value, 0.10),
+		q25 = quantile(value, 0.25),
+		q50 = quantile(value, 0.50),
+		q75 = quantile(value, 0.75),
+		q90 = quantile(value, 0.90))
+# df %>% head()
 
-x %>% gather(type, value, -year, - mdl) %>% 
-	mutate(type = as.factor(type) %>% fct_rev) %>% 
-	ggplot(aes(x = year, y = value, color = type)) + theme_bw() + 
+fig_infl <- 
+	df %>% gather(percentile, value, -year, -mdl) %>% 
+	mutate(percentile = as.factor(percentile) %>% fct_rev,
+				 mdl = factor(mdl, labels = c("AR(1) 1951-1984", "AR(1) 1951-2015", "AR(1) HSZ2016 1951-1984"))) %>% 
+	ggplot(aes(x = year, y = value, color = percentile)) + theme_bw() + 
+	facet_grid(. ~ mdl) +
 	geom_line() +
 	geom_point() +
 	coord_cartesian(ylim = c(0, 0.1)) + 
 	scale_y_continuous(breaks = seq(0, 1, 0.01))
 
+fig_infl
 
-sim_infl_mod_infl_y1a %>% head
-sim_infl_mod_infl_y3  %>% head
+# Observations:
+#   Distribution, especially the mean, can be sensitive to sample period
+#   
+#   
+#                         mean      AR(1)     sd
+#   AR(1)   1951-1984     0.046     0.77    0.022
+#   HSZ2016 1951-2084     0.039     0.807   0.019
+#   AR(1)   1951-2015     0.036     0.74    0.019
 
+#  
+
+mdl_infl_y1a$sigma2
+mdl_infl_y1b$sigma2
+mdl_infl_y3$sigma2
+
+mdl_infl_y1a$sigma2^0.5
+mdl_infl_y1b$sigma2^0.5
+mdl_infl_y3$sigma2^0.5
 
 
 
