@@ -158,8 +158,8 @@ SBBI_AppendB_vars <- c("LCapStock_TRI",
 										 	"TBills_TRI",
 										 	"Inflation_Index")  
 
-SBBI_AppendA_vars <- c("LTGBond_TRI",
-	                     "MTGBond_TRI",
+SBBI_AppendA_vars <- c("LTGBond_TR",
+	                     "MTGBond_TR",
 	                     "LTGBond_Yield",
 											 "MTGBond_Yield",
 											 "CBond_TR") 
