@@ -105,11 +105,11 @@ df_wilkie <-
 	df_dataAll_y %>% 
 	select( year, yearMon,
 					
-		cpi = Inflation_Index,       # SBBI price index, based on CPI-U, not seasonally adjusted
-		# cpi = CPIU_SA_FRED,     # CPI-U, seasonally adjusted
+		cpi = Inflation_Index,         # SBBI price index, based on CPI-U, not seasonally adjusted
+		# cpi = CPIU_SA_FRED,          # CPI-U, seasonally adjusted
 		
-		lcap_TRI = LCap_TRI,                      # SBBI Large Cap total return
-		lcap_CAI = LCap_CAI,                      # SBBI Large Cap capital appreciation
+		lcap_TRI = LCap_TRI,           # SBBI Large Cap total return
+		lcap_CAI = LCap_CAI,           # SBBI Large Cap capital appreciation
 		
 		cbond_yield = CBond_Yield_AAA, # Moody's AAA long-term bond yield
 		
@@ -419,6 +419,13 @@ sim_eqtprice %<>% add_index()
 sim_cbond_real %<>% add_index() 
 sim_cbond_infl %<>% add_index() 
 sim_cbond_totY %<>% add_index() 
+
+
+
+
+
+
+
 
 
 

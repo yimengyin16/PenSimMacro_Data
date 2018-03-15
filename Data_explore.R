@@ -1252,5 +1252,101 @@ df %>%
 	scale_x_continuous(breaks = seq(1930, 2015, 10))
 
 
+# Relationship between bond yield and returns
+
+df <- 
+df_dataAll_y %>% 
+	select(year, Inflation_Index, CBond_Yield_AAA, TBill3m_FRED, Tbond10y_FRED, Tbond30y_FRED, CBond_TRI, LTGBond_TRI, MTGBond_TRI, TBills_TRI, LTGBond_Yield, MTGBond_Yield) %>% 
+	mutate(dl_ltgbond_tr = log(LTGBond_TRI/lag(LTGBond_TRI)),
+				 dl_mtgbond_tr = log(MTGBond_TRI/lag(MTGBond_TRI)),
+				 dl_tbill_tr   = log(TBills_TRI/lag(TBills_TRI)),
+				 dl_cbond_tr   = log(CBond_TRI/lag(CBond_TRI)),
+				 infl          = log(Inflation_Index/lag(Inflation_Index)),
+				 CBond_Yield_AAA = CBond_Yield_AAA/100,
+				 TBill3m_FRED =  TBill3m_FRED/100, 
+				 Tbond10y_FRED = Tbond10y_FRED/100, 
+				 Tbond30y_FRED =  Tbond30y_FRED/100
+				 ) %>% 
+	filter(year >=1926)
+
+
+# Cbond
+df %>% select(year, dl_cbond_tr, CBond_Yield_AAA) %>% 
+	gather(var, value, -year) %>% 
+	qplot(x = year, y = value, color = var, geom = "line", data =.) + theme_bw() +
+	scale_y_continuous(breaks = seq(-1, 1, 0.05)) +
+	scale_x_continuous(breaks = seq(1930, 2015, 10))
+
+
+# Long-term gov bond
+df %>% select(year, dl_ltgbond_tr, LTGBond_Yield) %>% 
+	gather(var, value, -year) %>% 
+	qplot(x = year, y = value, color = var, geom = "line", data =.) + theme_bw() +
+	scale_y_continuous(breaks = seq(-1, 1, 0.05)) +
+	scale_x_continuous(breaks = seq(1930, 2015, 10))
+
+
+# mid-term gov bond
+df %>% select(year, dl_mtgbond_tr, MTGBond_Yield) %>% 
+	gather(var, value, -year) %>% 
+	qplot(x = year, y = value, color = var, geom = "line", data =.) + theme_bw() +
+	scale_y_continuous(breaks = seq(-1, 1, 0.05)) +
+	scale_x_continuous(breaks = seq(1930, 2015, 10))
+
+
+# compare yield
+df %>% select(year, CBond_Yield_AAA, TBill3m_FRED, Tbond10y_FRED, Tbond30y_FRED) %>% 
+	gather(var, value, -year) %>% 
+	qplot(x = year, y = value, color = var, geom = "line", data =.) + theme_bw() +
+	scale_y_continuous(breaks = seq(-1, 1,0.01)) +
+	scale_x_continuous(breaks = seq(1930, 2015, 10))
+
+
+# compare total return
+df %>% select(year,dl_ltgbond_tr, dl_mtgbond_tr, dl_tbill_tr,   dl_cbond_tr) %>% 
+	gather(var, value, -year) %>% 
+	qplot(x = year, y = value, color = var, geom = "line", data =.) + theme_bw() +
+	scale_y_continuous(breaks = seq(-1, 1,0.05)) +
+	scale_x_continuous(breaks = seq(1930, 2015, 10))
+  # Long-term bond total returns are highly correlated. 
+  # cbond returns are more volatile and occationally deviate from gov bond returns eg. 2008 crisis
+
+# compare FRED and SBBI
+df %>% select(year, LTGBond_Yield, Tbond10y_FRED, Tbond30y_FRED) %>% 
+	filter(year>=1951) %>% 
+	gather(var, value, -year) %>% 
+	qplot(x = year, y = value, color = var, geom = "line", data =.) + theme_bw() +
+	scale_y_continuous(breaks = seq(-1, 1,0.05)) +
+	scale_x_continuous(breaks = seq(1930, 2015, 10))
+
+df %>% select(year, MTGBond_Yield, Tbond10y_FRED, Tbond30y_FRED) %>% 
+	gather(var, value, -year) %>% 
+	filter(year>=1951) %>%
+	qplot(x = year, y = value, color = var, geom = "line", data =.) + theme_bw() +
+	scale_y_continuous(breaks = seq(-1, 1,0.05)) +
+	scale_x_continuous(breaks = seq(1930, 2015, 10))
+
+
+
+df %>% select(year, infl, TBill3m_FRED) %>% 
+	gather(var, value, -year) %>% 
+	filter(year>=1951) %>%
+	qplot(x = year, y = value, color = var, geom = "line", data =.) + theme_bw() +
+	scale_y_continuous(breaks = seq(-1, 1,0.05)) +
+	scale_x_continuous(breaks = seq(1930, 2015, 10))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
