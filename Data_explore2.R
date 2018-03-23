@@ -8,6 +8,16 @@
 # https://robjhyndman.com/hyndsight/arimax/
 
 
+#' Notes on fixed income
+#' 
+#' An argument for low real bond returns in the near future. 
+#'  https://pensionpartners.com/what-real-returns-should-bond-investors-expect/
+#'
+#' Treasury coupon rate and yield 
+#' https://www.quora.com/How-does-the-U-S-Treasury-decide-what-coupon-rate-to-offer-on-Treasury-notes
+
+
+
 ## Issues:
   # Simulate ARIMA process with initial values and regressors
 
@@ -32,9 +42,11 @@ library(TSA)      # companion package;  arimax: flexible transfer function model
 library(tseries)  #
 library(forecast) # Arima
 library(MSwM)
+library(TTR)
+
 #library(MSBVAR)
 
-# packages for 
+# packages for ts
 library(zoo)
 library(xts)
 
@@ -42,6 +54,9 @@ library(timetk)
 library(tidyquant)
 
 library(lubridate)
+library(feather)
+
+library(psych) # describe
 
 # check tidyquant, timetk, sweep (broom ), tibbletime
 # Intro to zoo  cran.r-project.org/web/packages/zoo/vignettes/zoo-quickref.pdf
@@ -153,6 +168,12 @@ fn <- function(df, year_range, rolling_width, freq){
 df_stock_m <- fn(df_dataAll,   1953:2015, 12, 12)
 df_stock_q <- fn(df_dataAll_q, 1953:2015, 12, 4)
 df_stock_y <- fn(df_dataAll_y, 1953:2015, 5,  1)
+
+
+# save data in feather format for python use
+write_feather(df_stock_q, "data_out/df_stock_q.feather" )
+df_stock_q$dl_gdp_o
+
 
 # total return and ERPs
 # monthly
@@ -280,6 +301,7 @@ df_stock_q %>%
 #**********************************************************************
 #                 Regime switching model ####
 #**********************************************************************
+
 ## Replicate results in Hardy2001
  # Not clear about the sample period in Hardy2001, use total return in 1954-2000
 mod_hardy <- msmFit(return_tot_o ~ 1, data = df_stock_m %>% filter(year %in% 1953:2000), k = 2, sw = c(T, T))
@@ -479,10 +501,302 @@ plot(fp.rec)
 m2$hreg
 
 
-# Regimes in total fixed income returns, 
+
+#*******************************************************
+### Examine fixed income returns ####
+#*******************************************************
+
+## Descriptive analysis
+
+# annual stock and bond
+bind_rows((df_stock_y$dl_cbond_o[-1]*100)   %>% describe(),
+					(df_stock_y$return_tot_o[-1]*100) %>% describe()) %>% 
+	mutate(varname = c('cbond_y', 'stock_y'))
+
+(df_stock_y$dl_cbond_o[-1]*100)   %>% hist(10)  # skewed toward right (fat tail in high returns)
+(df_stock_y$return_tot_o[-1]*100) %>% hist(10)  # skewed toward left  (fat tail in low  returns)
+
+ 
+cor(df_stock_y[-1, ] %>% select(dl_cbond_o, return_tot_o))
+
+df_stock_y %>% 
+	select(yearMon, mean_return, mean_cbond, mean_gbond) %>% 
+	gather(var,value, -yearMon) %>% 
+	ggplot(aes(x = yearMon , y = value, color = var)) + theme_bw()+
+	geom_line()
+
+# x <- 
+# df_stock_y %>% 
+# 	select(yearMon, return_tot_o, dl_cbond_o, dl_gbond_o) 
+# x
 
 
-# How correlation between stock and bond change over time-
+
+# Quarterly stock and bond
+bind_rows((df_stock_q$dl_cbond_o[-1]*100)   %>% describe(),
+					(df_stock_q$return_tot_o[-1]*100) %>% describe()) %>% 
+	mutate(varname = c('cbond_q', 'stock_q'))
+
+(df_stock_q$dl_cbond_o[-1]*100)   %>% hist(20)  # skewed toward right (fat tail in high returns)
+(df_stock_q$return_tot_o[-1]*100) %>% hist(20)  # skewed toward left  (fat tail in low  returns)
+
+cor(df_stock_q[-1, ] %>% select(dl_cbond_o, return_tot_o))
+
+df_stock_q %>% 
+	select(yearMon, mean_return, mean_cbond, mean_gbond) %>% 
+	gather(var,value, -yearMon) %>% 
+	ggplot(aes(x = yearMon , y = value, color = var)) + theme_bw()+
+	geom_line()
+
+
+#' Notes:
+#' Quarterly returns of stock and bonds show stronger skewness and fat-tailness than annual returns
+#' Correlation between stock and bond returns is stronger in annual data
+
+
+## How correlation between stock and bond change over time
+rollcorr_stock.cbond <- runCor(df_stock_q$return_tot_o, df_stock_q$dl_cbond_o, 12)
+df_stock_q$rollcorr_stock.cbond <- rollcorr_stock.cbond
+
+{df_stock_q %>% 
+		select(yearMon,
+					 rollcorr_stock.cbond) %>% 
+		gather(var, value, -yearMon) %>% 
+		ggplot() + theme_bw()+ 
+		#facet_grid(type~.) +
+		geom_line(aes(x = yearMon , y = value, color = var)) +
+		geom_rect(data = recessionPeriods, 
+							aes(xmin = peak, xmax = trough, 
+									ymin = -Inf, ymax = Inf), alpha = 0.4, fill = "grey") +
+		scale_x_continuous(breaks = seq(1950, 2020, 10)) + 
+		scale_y_continuous(breaks = seq(-1, 1, 0.1))+ 
+		coord_cartesian(ylim = c(-1, 1))}
+
+#' Correlations between total nominal returns are high unstable overtime
+#'   - correlation used to be very high before 2000, with a couple of sharp temporary decline
+#'   - correlation is generally negative after 2000, with strong swings.  
+#' No obvious pattern in relation to business cycles
+#' The only observed sharp rise in correlation is in the middle of the Great Recession. 
+
+
+## Modeling total bond returns with ARMA model
+
+# quarterly
+
+ #cbond
+auto.arima(df_stock_q$dl_cbond_o[-1]) # ARMA(3, 2) selected
+sarima(df_stock_q$dl_cbond_o[-1], 3, 0, 2) # Best ARMA model
+sarima(df_stock_q$dl_cbond_o[-1], 2, 0, 0) # AR2 model works ok 
+sarima(df_stock_q$dl_cbond_o[-1], 0, 0, 0) # RW-drift works fine too
+
+
+# Annual 
+
+ #cbond
+auto.arima(df_stock_y$dl_cbond_o[-1])      # random walk is selected
+sarima(df_stock_y$dl_cbond_o[-1], 1, 0, 0) # Best ARMA model looks fine
+sarima(df_stock_y$dl_cbond_o[-1], 0, 0, 0) # RW-drift model works better
+
+ #gbond
+auto.arima(df_stock_y$dl_gbond_o[-1])      # ARMA(1,1) is selected
+sarima(df_stock_y$dl_gbond_o[-1], 1, 0, 1) # Best auto arima model
+sarima(df_stock_y$dl_gbond_o[-1], 0, 0, 0) # But RW-drift has better AIC, BIC
+
+Arima(df_stock_y$dl_gbond_o[-1], c(1, 0, 1))
+Arima(df_stock_y$dl_gbond_o[-1], c(0, 0, 0)) # random walk 
+
+df_stock_y %>% filter(year >= 1970) %>% .$dl_cbond_o %>% mean
+
+# Nnotes:
+# It seems ok to model total long-term cbond or gbond returns based on 
+# 
+
+
+
+# MSDR model for bond returns
+mod_bond_q <- msmFit(dl_cbond_o ~ 1, data = df_stock_q %>% filter(year %in% 1954:2015), k = 2, sw = c(T, T))
+summary(mod_bond_q)
+plotProb(mod_bond_q)
+mod_bond_q
+
+index_q <- (df_stock_q %>% filter(year %in% 1954:2015))[, "yearMon"]
+regime_q <- 
+	mod_bond_q@Fit@smoProb[-1,] %>% as.data.frame %>% 
+	rename(prob_lVol = V2,
+				 prob_hVol = V1)
+regime_q <- bind_cols(yearMon = index_q, regime_q)
+
+{left_join(df_stock_q, regime_q) %>% 
+		select(yearMon,
+					 prob_hVol) %>% 
+		#gather(var, value, -yearMon) %>% 
+		ggplot() + theme_bw()+ 
+		#facet_grid(type~.) +
+		geom_line(aes(x = yearMon , y = prob_hVol)) +
+		geom_hline(yintercept = 0.5) + 
+		geom_rect(data = recessionPeriods, 
+							aes(xmin = peak, xmax = trough, 
+									ymin = -Inf, ymax = Inf), alpha = 0.4, fill = "grey") +
+		scale_x_continuous(breaks = seq(1950, 2020, 10)) + 
+		scale_y_continuous(breaks = seq(-0.5, 1.5, 0.1))+ 
+		coord_cartesian(ylim = c(0, 1))}
+
+# Regimes of total bond returns does not align well with recessions
+  # High return high volatility regime: 1980s and Great Recession
+  # Low return low volatility regime
+  # Bond returns may have tendency to go into high-vol-high-return regime around severe recessions
+
+
+
+
+
+
+#***********************************************************************************
+#   Examine simplified approach to modeling GDP and returns jointly             ####
+#***********************************************************************************
+
+#' Overview of the simplified modeling approach:
+#' 1. GDP (quarterly, core variable):
+#'    - Markov-switching model (AR or RW-drift)
+#'    - Transition matrix that determines regime-switching behavior
+#'    - Regime-dependent mean/std/parameters
+#'         - mean/std based on NBER definition
+#'         - mean/std based on stock MS model
+#'         - mean/std based on GDP   MS model
+#'    - Simulated regimes and paths of GDP growth
+#' 2. Total stock returns (for now, we may want to model ERP later in order to incorporate inflation)
+#'    - Markov-switching model: RW-drift
+#'    - Return regimes are highly aligned with GDP regimes
+#'    - For simulation: different mean return and std in GDP different GDP regimes
+#' 3. Total cbond returns 
+#'    - Show regime-switching behavior, but very different from those for GDP and stock returns.
+#'       - high return and high volatility regime 
+#'       - low return and low volatility regime
+#'       - May not be pure random walk within regimes, may need to model MSAR process. 
+#'    - Correlation with stock changes wildly over time, with no obivous pattern. 
+#'    - Simulation stragegy:
+#'       - 1. modeled and simulated as a seperate MS-AR/DR process, calibrate 
+#'            correlation with stock to historical value/assumed value by setting
+#'            the correlation between error terms of stock model and bond model.
+#'       - 2. 
+#' 4. Return of Portfolio
+#'    - Construct portfolio returns   
+#'
+
+#*******************************************************************************
+##   Check stock returns in different economic (GDP regimes)
+#*******************************************************************************
+
+# Mean and variance of stock returns in NBER recessions an expansions
+
+# Import NBER recession periods from a python module 
+usrec       <- feather("data_out/usrec.feather") %>% as.tibble()
+usrec_index <- feather("data_out/usrec_index.feather") %>% as.tibble
+
+usrec_index %<>% 
+	rename(dt = '0') %>% 
+	transmute(yearMon = as.yearmon(dt)) 
+
+usrec_index_appd <- data.frame(yearMon = seq(as.Date("2013/5/1"), as.Date("2015/12/1"), by="mon") %>% as.yearmon)
+usrec_appd <- data.frame(USREC = numeric(nrow(usrec_index_appd)))
+
+usrec_index <- bind_rows(usrec_index, usrec_index_appd) %>% 
+	mutate(yearMon = as.yearmon(yearMon))
+usrec <- bind_rows(usrec, usrec_appd)
+
+
+usrec_m <- bind_cols(usrec, usrec_index) %>% 
+	mutate(year = year(yearMon),
+				 month = month(yearMon))
+usrec_q <- 
+	usrec_m %>%
+	filter(month %in% c(3, 6, 9, 12))
+
+usrec_q %>% tail
+usrec_m %>% tail
+
+df_stock_m <- fn(df_dataAll,   1953:2015, 12, 12)
+df_stock_q <- fn(df_dataAll_q, 1953:2015, 12, 4)
+
+df_stock_m %<>% left_join(usrec_m) 
+df_stock_q %<>% left_join(usrec_q) 
+
+df_stock_q %>% 
+	select(yearMon, return_tot_o, USREC) %>% 
+  filter(!is.na(USREC) & !is.na(return_tot_o)) %>% 
+	group_by(USREC) %>% 
+	summarise(avg = mean(return_tot_o),
+						std = sd(return_tot_o))
+
+
+# Mean and variance of stock returns based on MS model of stock return
+mod_q <- msmFit(return_tot_o ~ 1, data = df_stock_q %>% filter(year %in% 1954:2015), k = 2, sw = c(T, T))
+summary(mod_q)
+plotProb(mod_q)
+
+
+# Mean and variance of stock returns based on GDP regimes
+gdp_regimes_q <- feather("data_out/regimes_gdp.feather") %>% as.tibble()
+
+gdp_regimes_q %<>% 
+	mutate(yearQtr = as.yearqtr(dt),
+				 year  = year(yearQtr),
+				 qtr   = quarter(yearQtr),
+				 rec2_filtered = p2_filtered >=0.5,
+				 rec2_smoothed = p2_smoothed >=0.5,
+				 rec3_filtered = p3_filtered >=0.5,
+				 rec3_smoothed = p3_smoothed >=0.5)
+
+df_stock_q <- fn(df_dataAll_q, 1953:2015, 12, 4)
+
+df <- 
+df_stock_q %>% 
+	mutate(yearQtr = as.yearqtr(yearMon)) %>%
+	left_join(gdp_regimes_q, by = 'yearQtr') %>% 
+	select(yearQtr, return_tot_o, starts_with("rec")) %>% 
+	filter(!is.na(return_tot_o))
+
+f <- function(df, v){
+	v <- enquo(v)
+	df %>% 
+		group_by(!!v) %>% 
+		summarise(avg = mean(return_tot_o),
+							std = sd(return_tot_o))
+}
+
+
+f(df, rec2_smoothed)
+f(df, rec3_smoothed)
+
+
+
+
+# Summary of quaterly stock mean return and std 
+
+# Based on NBER recession periods 1953 - 2015
+#            mean       std
+# expansion  0.032     0.0686
+# recession -0.014     0.119  
+
+# Based on MS model of stock return 1954-2015
+#            mean       std
+# expansion:  0.0419  0.0547
+# recession: -0.0192  0.1126
+
+
+# Based on MS RW-drift model of GDP (regimes imported from python program)
+
+# estimate seed 123 (?a local optimum, but consistent with hamilton1989)
+#            mean       std
+# expansion:  0.032   0.0685
+# recession:  0.0049  0.1044
+
+# estimate seed 127 (?global optimum, matches historical length of recessions best)
+#            mean       std
+# expansion: 0.028    0.0723
+# recession: 0.0027   0.122
+
+
 
 
 
