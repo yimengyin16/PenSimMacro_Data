@@ -60,6 +60,7 @@ library(lubridate)
 library(feather)
 
 library(psych) # describe
+library(xlsx)
 
 # check tidyquant, timetk, sweep (broom ), tibbletime
 # Intro to zoo  cran.r-project.org/web/packages/zoo/vignettes/zoo-quickref.pdf
@@ -353,15 +354,15 @@ replicate(10, rmarkovchain(n = 4*30, object = mc_gdp, t0 = '1'))
 
 # Stock: expansion
 s.mean_0 <- 0.032
-s.std_0  <- 0.068 
+s.std_0  <- 0.069 
 
 # Stock: recession
 s.mean_1 <- -0.014
 s.std_1  <- 0.119
 
 # Bond
-b.mean  <- 0.035/4
-b.std   <- 0.04/2
+b.mean  <- 0.016 #0.035/4
+b.std   <- 0.051 #0.04/2
 
 # Correlation between error terms(deviation from mean) of stock and bond returns
 # (Calibration needed)
@@ -438,6 +439,7 @@ sim_stockreturn <- (sim_gdp_regimes == 0) * sim_stockreturn_0 + (sim_gdp_regimes
 sim_gdp_growth  <- (sim_gdp_regimes == 0) * sim_gdp_0 +         (sim_gdp_regimes == 1) * sim_gdp_1
 }
 
+
 # check correlation between regime-switching stock returns and single-regime bond returns
 cor(cbind(as.vector(sim_bondreturn), as.vector(sim_stockreturn))) 
 
@@ -453,6 +455,13 @@ sim_stockreturn_1
 
 sim_gdp_0 %>% mean 
 sim_gdp_1 %>% mean
+
+
+
+#' TO what extent the simulation approach is capable of generating economic and investment return
+#' scenarios with statistical characteristics that are similar to historical data.
+
+
 
 
 
@@ -508,6 +517,8 @@ sapply(summary_gdpRegime_1, length) %>% hist()
 
 
 
+
+
 #***********************************************************************************
 #           Examine simulation results of stock returns                         ####
 #***********************************************************************************
@@ -556,7 +567,7 @@ df_sim_stockreturn_y$return_y %>% hist(seq(-0.65, 1.17, 0.02))
 df_sim_bondreturn_y$return_y	%>% mean # ~3.5% mean annual return (quarterly return compounded)
 df_sim_bondreturn_y$return_y	%>% sd   # ~4.1% std
 df_sim_bondreturn_y$return_y	%>% describe  # very small skewness and kurtosis
-df_sim_bondreturn_y$return_y %>% hist(seq(-0.25, 0.25, 0.01))
+df_sim_bondreturn_y$return_y %>%  hist(seq(-0.25, 0.25, 0.01))
 
 
 # annual gdp returns, all sims
@@ -569,9 +580,131 @@ df_sim_gdp_y$return_y %>% hist
 cor(df_sim_stockreturn_y$return_y,df_sim_bondreturn_y$return_y)
 
 
-
+df_sim_gdp_y
 
 ## Compared with historical distribution 
+
+## qqplot for GDP growth
+library(qqplotr)
+
+nsim_plot <- 50
+
+df_qqplot_sim <- 
+bind_rows(
+	df_stock_y %>% select(value = dl_gdp_o)    %>% mutate(type = "Historical", var = 'GDP growth' ),
+	(df_sim_gdp_y %>% select(value = return_y) %>% mutate(type = 'Simulated',  var = 'GDP growth'))[1:(nsim_plot*nyear),],  # plot based on 50 simulations
+
+	df_stock_y %>% select(value = return_tot_o ) %>% mutate(type = "Historical", var = 'Stock return'),
+	(df_sim_stockreturn_y %>% select(value = return_y) %>% mutate(type = 'Simulated',   var = 'Stock return'))[1:(nsim_plot*nyear),],  # plot based on 50 simulations
+	
+	df_stock_y           %>% select(value = dl_gbond_o) %>% mutate(type = "Historical", var = 'Bond return'),
+	(df_sim_bondreturn_y %>% select(value = return_y)   %>% mutate(type = 'Simulated',  var = 'Bond return'))[1:(nsim_plot*nyear),]  # plot based on 50 simulations
+	)
+df_qqplot_sim %>% head
+
+
+fig_qqplot_simGDP <- 
+	df_qqplot_sim %>% filter(var == 'GDP growth') %>% 
+	ggplot(aes(sample = value)) + facet_wrap(var~type, scales = 'fixed') + theme_bw() + RIG.themeLite()+
+	stat_qq_point(size = 1) +
+	stat_qq_line() +
+	#stat_qq_band(alpha = 0.5, con = 0.95, bandType = "boot") + 
+	labs(x = "Theoretical Quantiles", y = "Sample Quantiles",
+			 title = 'Comparing Q-Q plots of historical annual GDP growth and simulated annual GDP growth') 
+fig_qqplot_simGDP
+
+
+fig_qqplot_simStock <- 
+	df_qqplot_sim %>% filter(var == 'Stock return') %>% 
+	ggplot(aes(sample = value)) + facet_wrap(var~type, scales = 'fixed') + theme_bw() + RIG.themeLite()+
+	stat_qq_point(size = 1) +
+	stat_qq_line() +
+	#stat_qq_band(alpha = 0.5, con = 0.95, bandType = "boot") + 
+	labs(x = "Theoretical Quantiles", y = "Sample Quantiles",
+			 title = 'Comparing Q-Q plots of historical annual stock return and simulated annual stock return') 
+fig_qqplot_simStock
+
+
+fig_qqplot_simBond <- 
+	df_qqplot_sim %>% filter(var == 'Bond return') %>% 
+	ggplot(aes(sample = value)) + facet_wrap(var~type, scales = 'fixed') + theme_bw() + RIG.themeLite()+
+	stat_qq_point(size = 1) +
+	stat_qq_line() +
+	#stat_qq_band(alpha = 0.5, con = 0.95, bandType = "boot") + 
+	labs(x = "Theoretical Quantiles", y = "Sample Quantiles",
+			 title = 'Comparing Q-Q plots of historical annual bond return and simulated annual bond return') 
+fig_qqplot_simBond
+
+
+
+ggsave(paste0(dir_techReport, "fig_qqplot_simGDP.png"),   fig_qqplot_simGDP,   width = 10*0.95, height = 5.5*0.95)
+ggsave(paste0(dir_techReport, "fig_qqplot_simStock.png"), fig_qqplot_simStock, width = 10*0.95, height = 5.5*0.95)
+ggsave(paste0(dir_techReport, "fig_qqplot_simBond.png"),  fig_qqplot_simBond,  width = 10*0.95, height = 5.5*0.95)
+
+
+df_sim_descriptive <- 
+df_qqplot_sim %>%
+	filter(!is.na(value)) %>% 
+	group_by(var, type) %>%
+	select(-sim) %>% 
+	do(describe(.$value))
+
+df_sim_descriptive 
+
+write_csv(df_sim_descriptive, paste0(dir_techReport, 'descriptive_stats_sim.csv'))
+
+
+
+
+
+(df_sim_gdp_y %>% select(GDP_growth = return_y) %>% mutate(type = 'Simulated'))[1:900,]$GDP_growth %>% describe
+
+
+
+
+
+## Quantiles of GDP simulation
+
+df_sim_gdp_y %>% 
+	group_by(sim) %>% 
+	summarise(avg = mean(return_y),
+						std  = sd(return_y)) %>% 
+	summarise(avg_q25 = quantile(avg, 0.25), 
+						avg_q50 = quantile(avg, 0.50), 
+						avg_q75 = quantile(avg, 0.75), 
+						
+						std_q25 = quantile(std, 0.25), 
+						std_q50 = quantile(std, 0.50), 
+						std_q75 = quantile(std, 0.75) 
+						)
+
+# number of recessions 
+
+# Number of recessions 
+sapply(summary_gdpRegime_1, length) %>% quantile(0.25)   # ~5 recessions in 30 years (many are very short)
+sapply(summary_gdpRegime_1, length) %>% quantile(0.50)   # ~5 recessions in 30 years (many are very short)
+sapply(summary_gdpRegime_1, length) %>% quantile(0.75)   # ~5 recessions in 30 years (many are very short)
+
+# Expected length of regimes
+sapply(summary_gdpRegime_1, mean) %>% quantile(0.25, na.rm = TRUE)   # average length is ~3.1 quarters. 
+sapply(summary_gdpRegime_1, mean) %>% quantile(0.50, na.rm = TRUE)   # average length is ~3.1 quarters. 
+sapply(summary_gdpRegime_1, mean) %>% quantile(0.75, na.rm = TRUE)   # average length is ~3.1 quarters. 
+
+sapply(summary_gdpRegime_0, mean) %>% quantile(0.25, na.rm = TRUE)   # average length is ~3.1 quarters. 
+sapply(summary_gdpRegime_0, mean) %>% quantile(0.50, na.rm = TRUE)   # average length is ~3.1 quarters. 
+sapply(summary_gdpRegime_0, mean) %>% quantile(0.75, na.rm = TRUE)   # average length is ~3.1 quarters. 
+
+
+
+sapply(summary_gdpRegime_1, mean) %>% head
+
+summary_gdpRegime_1 %>% head
+
+sapply(summary_gdpRegime_0, mean) %>% mean(., na.rm = TRUE)  # average length is ~20  quarters. 
+# all as expected
+
+
+
 
 ## Stock
 # qq-plot 
@@ -596,6 +729,7 @@ df_stock_q$return_tot_o[-1] %>% qqline
 # probability of -30% return or worse
 pnorm(-0.3, 0.108, 0.172) # 0.8%
 pnorm(-0.3, 0.067, 0.164)
+
 
 (df_sim_stockreturn_y$return_y[1:10000]<= -0.3) %>% sum
 
@@ -623,6 +757,8 @@ df_stock_y$dl_gdp[-1] %>% qqline
 
 
 df_stock_y
+
+
 
 
 

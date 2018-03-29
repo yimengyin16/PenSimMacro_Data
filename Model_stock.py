@@ -314,10 +314,123 @@ fig.tight_layout()
  
 #%%
 
+'''
+Modeling stock market
+'''
+
 mod_stock = sm.tsa.MarkovRegression(dta_stock['1953-04-01':'2015-10-01'], k_regimes = 2, switching_variance =  True)
 res_stock = mod_stock.fit(search_reps = 40, search_iter = 30, maxiter=1000)
 print(res_stock.summary())
 print(res_stock.expected_durations)
+
+
+fig, axes = plt.subplots(2, figsize = (11, 9))
+ax = axes[0]
+ax.plot(res_stock.filtered_marginal_probabilities[0])
+ax.fill_between(usrec.index, 0, 1, where = usrec['USREC'].values, color = 'grey', alpha = 0.3)
+ax.set(xlim = (dta_stock.index[4], dta_stock.index[-1]), ylim = (0,1),
+       title = 'Filtered probability of recession, seed123')
+ax.set_xticks(pd.date_range('1950-01-01', '2015-10-1', freq = 'QS')[0::20])
+
+ax = axes[1]
+ax.plot(res_stock.smoothed_marginal_probabilities[0])
+ax.fill_between(usrec.index, 0, 1, where = usrec['USREC'].values, color = 'grey', alpha = 0.3)
+ax.set(xlim = (dta_stock.index[4], dta_stock.index[-1]), ylim = (0,1),
+       title = 'Smoothed probability of recession, seed123')
+ax.set_xticks(pd.date_range('1950-01-01', '2015-10-1', freq = 'QS')[0::20])
+
+
+#%%
+
+'''
+Models and results for report
+'''
+
+# GDP model
+
+# MSAR4
+np.random.seed(12349)
+mod_gdp1 = sm.tsa.MarkovAutoregression(dta_gdp['1953-04-01':'2015-10-01'], k_regimes=2, order = 4, switching_ar = False, switching_variance =  False)
+res_gdp1 = mod_gdp1.fit(search_reps = 40, search_iter = 30, maxiter=1000)
+print(res_gdp1.summary())
+print(res_gdp1.expected_durations)
+
+
+# MSAR2
+np.random.seed(1236)
+mod_gdp2 = sm.tsa.MarkovAutoregression(dta_gdp['1953-04-01':'2015-10-01'], k_regimes=2, order = 2, switching_ar = False, switching_variance =  False)
+res_gdp2 = mod_gdp2.fit(search_reps = 40, search_iter = 30, maxiter=1000)
+print(res_gdp2.summary())
+print(res_gdp2.expected_durations)
+
+
+# MDR RW-drift
+np.random.seed(127)
+mod_gdp3 = sm.tsa.MarkovRegression(dta_gdp['1953-04-01':'2015-10-01'], k_regimes = 2)
+res_gdp3 = mod_gdp3.fit(search_reps = 40, search_iter = 30, maxiter=1000)
+print(res_gdp3.summary())
+print(res_gdp3.expected_durations)
+
+
+fig, axes = plt.subplots(3, figsize = (11, 10))
+ax = axes[0]
+ax.plot(res_gdp1.smoothed_marginal_probabilities[0])
+ax.fill_between(usrec.index, 0, 1, where = usrec['USREC'].values, color = 'grey', alpha = 0.3)
+ax.set(xlim = (dta_gdp.index[4], dta_gdp.index[-1]), ylim = (0,1),
+       title = 'Smoothed probability of recession: Markov-switching AR(4)')
+
+ax = axes[1]
+ax.plot(res_gdp2.smoothed_marginal_probabilities[0])
+ax.fill_between(usrec.index, 0, 1, where = usrec['USREC'].values, color = 'grey', alpha = 0.3)
+ax.set(xlim = (dta_gdp.index[4], dta_gdp.index[-1]), ylim = (0,1),
+       title = 'Smoothed probability of recession: Markov-switching AR(2)')
+
+ax = axes[2]
+ax.plot(res_gdp3.smoothed_marginal_probabilities[0])
+ax.fill_between(usrec.index, 0, 1, where = usrec['USREC'].values, color = 'grey', alpha = 0.3)
+ax.set(xlim = (dta_gdp.index[4], dta_gdp.index[-1]), ylim = (0,1),
+       title = 'Smoothed probability of recession: Markov-switching random walk with drift')
+
+
+fig.tight_layout()
+
+
+
+# stock model
+
+mod_stock = sm.tsa.MarkovRegression(dta_stock['1953-04-01':'2015-10-01'], k_regimes = 2, switching_variance =  True)
+res_stock = mod_stock.fit(search_reps = 40, search_iter = 30, maxiter=1000)
+print(res_stock.summary())
+print(res_stock.expected_durations)
+
+
+# plotting smoothed probabilities
+fig, axes = plt.subplots(2, figsize = (11, 9))
+ax = axes[0]
+ax.plot(res_gdp3.filtered_marginal_probabilities[0])
+ax.fill_between(usrec.index, 0, 1, where = usrec['USREC'].values, color = 'grey', alpha = 0.3)
+ax.set(xlim = (dta_gdp.index[4], dta_gdp.index[-1]), ylim = (0,1),
+       title = 'Smoothed probability of recession regime of GDP growth')
+ax.set_xticks(pd.date_range('1950-01-01', '2015-10-1', freq = 'QS')[0::20])
+
+ax = axes[1]
+ax.plot(res_stock.smoothed_marginal_probabilities[0])
+ax.fill_between(usrec.index, 0, 1, where = usrec['USREC'].values, color = 'grey', alpha = 0.3)
+ax.set(xlim = (dta_stock.index[4], dta_stock.index[-1]), ylim = (0,1),
+       title = 'Smoothed probability of low-return-and-high-volatility regime of total stock return')
+ax.set_xticks(pd.date_range('1950-01-01', '2015-10-1', freq = 'QS')[0::20])
+
+
+# Modeling results
+print(res_gdp3.summary())
+print(res_gdp3.expected_durations)
+
+print(res_stock.summary())
+print(res_stock.expected_durations)
+
+
+np.sqrt(5.99e-06 )
+
 
 
 #%%
@@ -397,4 +510,4 @@ regimes_gdp = pd.concat((regimes_gdp_index, regimes_gdp2,  regimes_gdp3), axis =
 
 feather.write_dataframe(regimes_gdp, "data_out/regimes_gdp.feather")
 
-
+dta_stock['1953-04-01':'2015-10-01']
