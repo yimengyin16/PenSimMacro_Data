@@ -85,20 +85,22 @@ Rev_urban_SL_tot_nom <- read_excel(paste0(dir_data_raw, 'TaxRev/Urban_SL_tot_nom
 Rev_urban_S_tot_nom  <- read_excel(paste0(dir_data_raw, 'TaxRev/Urban_S_tot_nom.xlsx'),  skip = 3)
 Rev_urban_L_tot_nom  <- read_excel(paste0(dir_data_raw, 'TaxRev/Urban_L_tot_nom.xlsx'),  skip = 3)
 
-# Rev_urban_SL_tot_nom
-# Rev_urban_S_tot_nom
-# Rev_urban_L_tot_nom
+Rev_urban_SL_tot_nom
+Rev_urban_S_tot_nom
+Rev_urban_L_tot_nom
 
 fn <- function(df){	
-	df %>% 
+	df %>% filter(!is.na(Year)) %>% 
 		gather(varname, value, -State, -Year) %>% 
 	  mutate(varname = str_extract(varname,  '\\(([^()]*)\\)'), # '\\(([^)]+)\\)')) # extract text inside (): http://www.rexegg.com/regex-cookbook.html#captureparen
 	  			 varname = str_replace(varname, '\\(', ''),
-	  			 varname = str_replace(varname, '\\)', ''))    
+	  			 varname = str_replace(varname, '\\)', ''),
+	  			 value   = as.numeric(value),   # DC values for 2013-14 are 'N/A'.
+	  			 value   = ifelse(is.na(value), 0, value))    
 }
 Rev_urban_SL_tot_nom %<>% fn %>% mutate(type = "SL") 
-Rev_urban_S_tot_nom %<>%  fn %>% mutate(type = "state") 
-Rev_urban_L_tot_nom %<>%  fn %>% mutate(type = "local") 
+Rev_urban_L_tot_nom  %<>% fn %>% mutate(type = "local") 
+Rev_urban_S_tot_nom  %<>% fn %>% mutate(type = "state") 
 
 Rev_urban_tot_nom <-  
 	bind_rows(Rev_urban_SL_tot_nom,
@@ -107,13 +109,15 @@ Rev_urban_tot_nom <-
 
 
 
+Rev_urban_tot_nom$State %>% unique
+
+# Create and standardized data frame for US states
+
+us_states <- tibble(state = c(state.name, "DC", "United States"), state_abb = c(state.abb, "DC", "US"))
 
 
-
-
-
-
-
+x <- data.frame(Rev_urban_tot_nom$State %>% unique %>% sort, us_states$state %>% sort)
+identical(x[[1]], x[[2]])
 
 
 
