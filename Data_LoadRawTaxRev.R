@@ -107,17 +107,16 @@ Rev_urban_tot_nom <-
 						Rev_urban_S_tot_nom,
 						Rev_urban_L_tot_nom)
 
-
-
-Rev_urban_tot_nom$State %>% unique
-
 # Create and standardized data frame for US states
 
 us_states <- tibble(state = c(state.name, "DC", "United States"), state_abb = c(state.abb, "DC", "US"))
+# x <- data.frame(Rev_urban_tot_nom$State %>% unique %>% sort, us_states$state %>% sort)
+# identical(x[[1]], x[[2]])
 
 
-x <- data.frame(Rev_urban_tot_nom$State %>% unique %>% sort, us_states$state %>% sort)
-identical(x[[1]], x[[2]])
+Rev_urban_tot_nom
+
+
 
 
 
