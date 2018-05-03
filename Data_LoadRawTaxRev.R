@@ -54,6 +54,12 @@ Quandl.api_key("rsakY2-RD8pa1JNBk9sd")
 #'   - Data values are slightly different from the Census data but are generally consistent.
 #'   - Many government types and revenue variables are available, data loaded here are from
 #'     a data query that includes the folling variables:
+#'   - 1977-2015
+#'   - Real values are based on 2015 dollar:
+#'       Finance data are adjusted to 2015 dollars using the Consumer Price Index (CPI) from the 
+#'       Bureau of Labor Statistics. The parameters for the CPI used are Not Seasonally Adjusted, 
+#'       All-Urban Consumers, All Cities Average, and All Items. Data are for the calendar year of the finance data.
+#'   - The same adjustment factors are applied to all levels and all tax categories. 
 
 
 #' selected series:
@@ -81,13 +87,25 @@ Quandl.api_key("rsakY2-RD8pa1JNBk9sd")
 
 # State and local
 
-Rev_urban_SL_tot_nom <- read_excel(paste0(dir_data_raw, 'TaxRev/Urban_SL_tot_nom.xlsx'), skip = 3)
-Rev_urban_S_tot_nom  <- read_excel(paste0(dir_data_raw, 'TaxRev/Urban_S_tot_nom.xlsx'),  skip = 3)
-Rev_urban_L_tot_nom  <- read_excel(paste0(dir_data_raw, 'TaxRev/Urban_L_tot_nom.xlsx'),  skip = 3)
+Rev_urban_SL_tot_nom <- read_excel(paste0(dir_data_raw, 'TaxRev/Rev_urban_SL_tot_nom.xlsx'), skip = 3)
+Rev_urban_S_tot_nom  <- read_excel(paste0(dir_data_raw, 'TaxRev/Rev_urban_S_tot_nom.xlsx'),  skip = 3)
+Rev_urban_L_tot_nom  <- read_excel(paste0(dir_data_raw, 'TaxRev/Rev_urban_L_tot_nom.xlsx'),  skip = 3)
+
+Rev_urban_SL_tot_real <- read_excel(paste0(dir_data_raw, 'TaxRev/Rev_urban_SL_tot_real.xlsx'), skip = 3)
+Rev_urban_S_tot_real  <- read_excel(paste0(dir_data_raw, 'TaxRev/Rev_urban_S_tot_real.xlsx'),  skip = 3)
+Rev_urban_L_tot_real  <- read_excel(paste0(dir_data_raw, 'TaxRev/Rev_urban_L_tot_real.xlsx'),  skip = 3)
+
 
 Rev_urban_SL_tot_nom
 Rev_urban_S_tot_nom
 Rev_urban_L_tot_nom
+
+Rev_urban_SL_tot_real
+Rev_urban_S_tot_real
+Rev_urban_L_tot_real
+
+
+
 
 fn <- function(df){	
 	df %>% filter(!is.na(Year)) %>% 
@@ -103,12 +121,25 @@ Rev_urban_SL_tot_nom %<>% fn %>% mutate(type = "SL")
 Rev_urban_L_tot_nom  %<>% fn %>% mutate(type = "local") 
 Rev_urban_S_tot_nom  %<>% fn %>% mutate(type = "state") 
 
+Rev_urban_SL_tot_real %<>% fn %>% mutate(type = "SL") 
+Rev_urban_L_tot_real  %<>% fn %>% mutate(type = "local") 
+Rev_urban_S_tot_real  %<>% fn %>% mutate(type = "state") 
+
+
 Rev_urban_tot_nom <-  
 	bind_rows(Rev_urban_SL_tot_nom,
 						Rev_urban_S_tot_nom,
-						Rev_urban_L_tot_nom)
+						Rev_urban_L_tot_nom) %>% 
+	mutate(nomReal = "nom")
 
+Rev_urban_tot_real <-  
+	bind_rows(Rev_urban_SL_tot_real,
+						Rev_urban_S_tot_real,
+						Rev_urban_L_tot_real) %>% 
+	mutate(nomReal = "real")
 
+Rev_urban_tot_nom
+Rev_urban_tot_real
 
 # Index data frame 1: Full state names and abbreviations 
 df_us_states <- tibble(state = c(state.name, "District of Columbia", "United States"), state_abb = c(state.abb, "DC", "US"))
@@ -141,9 +172,15 @@ df_vars
 Rev_urban_tot_nom %<>% 
 	left_join(df_us_states) %>% 
 	left_join(df_vars) %>% 
-	select(state,state_abb, type, year = Year, varcode, varname, value, vardesc)
-
+	select(state,state_abb, type, nomReal, year = Year, varcode, varname, value, vardesc)
 Rev_urban_tot_nom
+
+Rev_urban_tot_real %<>% 
+	left_join(df_us_states) %>% 
+	left_join(df_vars) %>% 
+	select(state,state_abb, type, nomReal, year = Year, varcode, varname, value, vardesc)
+Rev_urban_tot_real
+
 
 
 #**********************************************************************
@@ -198,6 +235,14 @@ df_GSP_FRED
 # BEA: 
   # https://www.bea.gov/itable/iTable.cfm?ReqID=70&step=1#reqid=70&step=4&isuri=1&7003=200&7001=1200&7002=1&7090=70
 
+# GSP before 1997, SIC,  US+DC+50
+   # Nominal:  1963-1997
+   # Real:     1987-1997 in 1997 dollar, adjustment factors vary across states
+  
+# GSP after 1997: NAICS, US+DC+50
+   # Nominal:  1987-1997
+   # Real:     1987-1997 in 2009 dollar, adjustment factors vary across states
+
 
 # GSP before 1997: SIC   See Standard Industrial Classification (SIC) For a complete list of regional statistics, see Regional Definitions.
 	# 1/ Estimates for 1977-86 are for the 1972 Standard Industrial Classification (SIC) industries electric and electronic equipment and instruments and related products.
@@ -209,7 +254,7 @@ df_GSP_FRED
 	# Note-- SIC Industry detail for the years 1987-97 is based on the 1987 Standard Industrial Classification (SIC). Industry detail for the years 1963-86 is based on the 1972 SIC.
 	# Note-- Per capita real GDP statistics for 1987-1997 reflect Census Bureau midyear population estimates.
 	# Last updated: November 24, 2010.
-	# 
+	
 
 # GSP after 1997:  NAICS See North American Industrial Classification System (NAICS). For a complete list of regional statistics, see Regional Definitions.
 	# Note-- NAICS Industry detail is based on the 2007 North American Industry Classification System (NAICS).
@@ -234,36 +279,77 @@ df_GSP_FRED
 
 # post-1997 GSP from FRED/Quandl are the same as those from BEA
 
-RGSP_BEA_before1997 <- read_excel(paste0(dir_data_raw, 'GSP/GSP_BEA_before1997.xls'), skip = 5) %>% filter(!is.na(Area))
-RGSP_BEA_after1997  <- read_excel(paste0(dir_data_raw, 'GSP/GSP_BEA_after1997.xls'),  skip = 5) %>% filter(!is.na(Area))
+
+RGSP_BEA_before1997 <- read_excel(paste0(dir_data_raw, 'GSP/RGSP_BEA_before1997.xls'), skip = 5) %>% filter(!is.na(Area))
+RGSP_BEA_after1997  <- read_excel(paste0(dir_data_raw, 'GSP/RGSP_BEA_after1997.xls'),  skip = 5) %>% filter(!is.na(Area))
+
+NGSP_BEA_before1997 <- read_excel(paste0(dir_data_raw, 'GSP/NGSP_BEA_before1997.xls'), skip = 5) %>% filter(!is.na(Area))
+NGSP_BEA_after1997  <- read_excel(paste0(dir_data_raw, 'GSP/NGSP_BEA_after1997.xls'),  skip = 5) %>% filter(!is.na(Area))
+
+
 
 RGSP_BEA_before1997 %<>% 
-	gather(year, RGSP, -Fips, -Area) %>% 
+	gather(year, RGSP_SIC, -Fips, -Area) %>% 
 	mutate(year = as.numeric(year),
 	       Fips = NULL,
-				 NAICS = FALSE) %>% 
+				 RGSP_SIC = as.numeric(RGSP_SIC)) %>% 
 	rename(state = Area)
 
 RGSP_BEA_after1997 %<>% 
-	gather(year, RGSP, -Fips, -Area) %>% 
+	gather(year, RGSP_NAICS, -Fips, -Area) %>% 
 	mutate(year = as.numeric(year),
-				 Fips = NULL,
-				 NAICS = TRUE) %>% 
+				 Fips = NULL) %>% 
 	rename(state = Area)
 
+
+NGSP_BEA_before1997 %<>% 
+	gather(year, NGSP_SIC, -Fips, -Area) %>% 
+	mutate(year = as.numeric(year),
+				 Fips = NULL) %>% 
+	rename(state = Area)
+
+NGSP_BEA_after1997 %<>% 
+	gather(year, NGSP_NAICS, -Fips, -Area) %>% 
+	mutate(year = as.numeric(year),
+				 Fips = NULL) %>% 
+	rename(state = Area)
+
+
+
+
+
 df_RGSP_BEA <- 
-	bind_rows(RGSP_BEA_before1997,
+	full_join(RGSP_BEA_before1997,
 						RGSP_BEA_after1997) %>% 
 	left_join(df_us_states) %>% 
-	select(state, state_abb, year, everything())
-  arrange(state, year) 
-
+	select(state, state_abb, year, everything()) %>% 
+	arrange(state, year) 
 df_RGSP_BEA
 
-save(Rev_urban_tot_nom, df_GSP_FRED, df_RGSP_BEA,df_us_states,  file = paste0(dir_data_raw, "dataRaw_RevGSP.RData"))
+df_NGSP_BEA <- 
+	full_join(NGSP_BEA_before1997,
+						NGSP_BEA_after1997) %>% 
+	left_join(df_us_states) %>% 
+	select(state, state_abb, year, everything()) %>% 
+	arrange(state, year) 
+df_NGSP_BEA
 
 
-Rev_urban_tot_nom
+
+
+save(Rev_urban_tot_nom, 
+		 Rev_urban_tot_real, 
+		 
+		 df_NGSP_BEA, 
+		 df_RGSP_BEA,
+		 df_GSP_FRED,
+		 
+		 df_us_states,
+		  
+		 file = paste0(dir_data_raw, "dataRaw_RevGSP.RData"))
+
+
+
 
 
 

@@ -132,10 +132,10 @@ df_GDP_y <-
 		     dl_GDP  =  log(GDP/lag(GDP))) %>% 
 	tk_xts(date_var = yearMon)
 
-df_GDP_q["1945/", "l_GDP"] %>% plot
+df_GDP_q["1945/", "l_GDP"]  %>% plot
 df_GDP_q["1945/", "dl_GDP"] %>% plot
 
-df_GDP_y["1945/", "l_GDP"] %>% plot
+df_GDP_y["1945/", "l_GDP"]  %>% plot
 df_GDP_y["1945/", "dl_GDP"] %>% plot
 
 df_GDP_q["1945/", "dl_GDP"] %>% mean(na.rm = TRUE)
