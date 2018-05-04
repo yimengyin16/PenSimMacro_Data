@@ -83,6 +83,14 @@ Quandl.api_key("rsakY2-RD8pa1JNBk9sd")
 
 #' Notes:  
 #'  - state and local sum up to "state and local " only for 'own source revenue and tax'
+#'
+#'
+#'
+#' Notes from Census
+#' https://www2.census.gov/govs/local/state-local_govt_fin_user_notes.pdf
+
+
+
 
 
 # State and local
