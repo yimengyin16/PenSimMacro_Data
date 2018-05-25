@@ -1,0 +1,1558 @@
+# This script explore the relationship between GSP and state gov revenue and does exploratory modeling 
+# It is also for the first draft of the policy brief. 
+
+
+#**********************************************************************
+#                          Notes                                   ####
+#**********************************************************************
+
+# To-do list for GSP and tax revenue section
+
+
+# What to model:
+# 1. Personal income tax: relationship with GSP growth and returns (stock and/or portfolio)
+# 2. General Sales tax: relationship with GSP, how the relationship changes during recessions
+# 3. Other taxes (non-PIT-non-sales taxes): relationship with GSP
+# 4. Construct stylized government types 
+
+# Note: 
+#  - Use real values for now. When integrated with macro model, which uses real GDP, 
+#    add the assumed inflation rate to the GSP growth rate. So we do not model inflation 
+#    in this version. 
+
+
+# Other relationships to examine:
+  # 1. GSP growth and total own soure revenue growth,
+  # 2. GSP growth and total tax revenue growth
+  # 3. GSP growth and personal income tax growth
+  # 4. GSP growth and sales tax growth
+  # 5. GSP growth and property tax growth
+  # 6. GSP growth and corporate income tax growth
+  # 7. GSP growth and growth of total tax revenue minus PIT and sales
+  # 8. national GDP growth and GSP growth
+
+
+# Notes on real and nominal variables
+#  - results for nominal variables for 1995-2015 can be compared with Pew results
+#  - GDP/GSP are modeled in real terms in the macro model, so the GDP-revenue relationship should be
+#    modeld using real term. But note that pension contributions are modeled in nominal terms, which 
+#    must be compared against nominal gov revenue. 
+#  - Real revenue variables are in 2015 dollar and adjustment factor for inflation is the same across
+#    all states, gov levels and types of tax, while real GSPs are in 2009 dollar and adjustment factors 
+#    for inflation differ across states.
+
+
+# How sales taxes are divided between state and local governments:
+ # https://taxfoundation.org/state-and-local-sales-tax-rates-in-2017/
+ # Five states do not have statewide sales taxes: Alaska, Delaware, Montana, New Hampshire, and Oregon. 
+ # Of these, Alaska and Montana allow localities to charge local sales taxes.
+
+
+
+#**********************************************************************
+#                           Packages                               ####
+#**********************************************************************
+
+library(tidyverse)
+library(broom)
+library(readxl)
+library(magrittr)
+library(ggrepel)
+library(stringr)
+library(forcats)
+library(grid)
+library(gridExtra)
+library(scales)
+library(knitr)
+
+library(xlsx)
+
+# packages for econometric and time series modeling
+library(plm)
+library(astsa)    # companion package
+library(TSA)      # companion package;  arimax: flexible transfer function model
+library(tseries)  #
+library(forecast) # Arima
+library(MSwM)
+library(TTR)
+library(dynlm)
+library(broom)
+
+#library(MSBVAR)
+
+# packages for ts
+library(zoo)
+library(xts)
+
+
+library(timetk)
+library(tidyquant)
+
+library(lubridate)
+library(feather)
+
+library(psych) # describe
+
+options(tibble.print_max = 60, tibble.print_min = 60)
+
+
+# check tidyquant, timetk, sweep (broom ), tibbletime
+# Intro to zoo  cran.r-project.org/web/packages/zoo/vignettes/zoo-quickref.pdf
+# sweep: http://www.business-science.io/code-tools/2017/07/09/sweep-0-1-0.html
+
+#**********************************************************************
+#                     Global settings and tools                    ####
+#**********************************************************************
+dir_data_raw <- "data_raw/"
+dir_data_out <- "data_out/"
+dir_fig_out <- "policyBrief_out/"
+
+
+# NBER recession periods, post-WWII
+recessionPeriods <- 
+  matrix(c(
+  	1953+2/4, 1954+2/4,
+  	1957+3/4, 1958+2/4,
+  	1960+2/4, 1961+1/4,
+  	1969+4/4, 1970+4/4,
+  	1973+4/4, 1975+1/4,
+  	1980+1/4, 1980+3/4,
+  	1981+3/4, 1982+4/4,
+  	1990+3/4, 1991+1/4,
+  	2001+1/4, 2001+4/4,
+  	2007+4/4, 2009+2/4
+  ) , ncol = 2, byrow = T) %>% 
+  as.data.frame() %>% 
+	rename(peak =   V1,
+				 trough = V2) %>% 
+	mutate(peak = peak - 1/4,
+				 trough = trough - 1/4)
+
+
+get_logReturn <- function(x){
+	if(any(x <= 0, na.rm = TRUE)) stop("Nagative value(s)")
+	log(x/lag(x))
+}
+
+
+
+
+# RIG colors and theme
+RIG.blue  <- "#003598"
+RIG.red   <- "#A50021"
+RIG.green <- "#009900"
+RIG.yellow <- "#FFFF66"
+RIG.purple <- "#9966FF"
+RIG.yellow.dark <- "#ffc829"
+RIG.orange <- "#fc9272"
+
+demo.color6 <- c(RIG.red,
+								 RIG.orange,
+								 RIG.purple,
+								 RIG.green ,
+								 RIG.blue,
+								 RIG.yellow.dark)
+
+
+RIG.theme <- function() {
+	theme(
+		panel.grid.major.x = element_blank(),
+		panel.grid.minor.x = element_blank(),
+		panel.grid.minor.y = element_blank(),
+		panel.grid.major.y = element_line(size = 0.5, color = "gray80"),
+		plot.title = element_text(hjust = 0.5),
+		plot.subtitle = element_text(hjust = 0.5),
+		plot.caption = element_text(hjust = 0, size = 9)
+	)
+}
+
+RIG.themeLite <- function() {
+	theme(
+		plot.title = element_text(hjust = 0.5),
+		plot.subtitle = element_text(hjust = 0.5),
+		plot.caption = element_text(hjust = 0, size = 9)
+	)
+}
+
+
+
+
+#**********************************************************************
+#                       Loading Data                               ####
+#**********************************************************************
+# Loading saved data 
+load(paste0(dir_data_out, "data_RevGSP.RData"))
+load(paste0(dir_data_out, "dataAll.RData"))
+
+
+# df_RevGSP loaded
+
+# Variables in df_RevGSP
+#  Indices: state, state_abb, year
+#  GSP variables
+#     - RGSP_SIC:   From BEA,  1963-1997, based on SIC
+#     - RGSP_NAICS: From BEA,  1997-2016, based on NAICS
+#     - NGSP:       From FRED, 1997-2016
+#  Tax and revenue variables: 1977-2015
+#     - suffix for gov levels: 
+#        - local
+#        - state
+#        - SL: state and local
+#     - suffix for real or nominal: real / nom
+# 
+#     - variables:   
+#      urban code    Var name					  Var description
+#        'R01',     'rev_tot',          'Total revenue', 
+#        'R02',     'rev_tot_ownSrc',   'Total Rev-Own Sources',
+#        'R03',     'rev_gen',          'General Revenue',
+#        'R04',     'rev_gen_ownSrc',   'Gen Rev-Own Sources',
+#        'R05',     'tax_tot',          'Total Taxes',
+#        'R06',     'tax_property',     'Property Taxes',
+#        'R08',     'tax_sales_tot',    'Tot Sales & Gr Rec Tax',
+#        'R09',     'tax_sales_gen',    'Total Gen Sales Tax (T09)',
+#        'R10',     'tax_sales_select', 'Total select Sales Tax',
+#        'R27',     'tax_indivIncome',  'Individual Income Tax (T40)',
+#        'R28',     'tax_corpIncome',   'Corp Net Income Tax',
+#        'R36',     'chgs_Misc',        'Tot Chgs and Misc Rev'
+#      - with missing values 
+
+# Real terms (BEA real GSP starts from 1987)
+df_real <- 
+	df_RevGSP %>%
+	select(state_abb, year, 
+				 RGSP_SIC, RGSP_NAICS, 
+				 tax_tot_real_state, 
+				 tax_indivIncome_real_state,
+				 tax_sales_tot_real_state,
+				 tax_sales_gen_real_state,
+				 tax_sales_select_real_state,
+				 tax_corpIncome_real_state,
+				 tax_property_real_state) %>% 
+	mutate(tax_other_real_state = tax_tot_real_state - tax_indivIncome_real_state - 
+				                        tax_sales_tot_real_state - tax_corpIncome_real_state - tax_property_real_state,
+				 tax_nonPITsalesgen_real_state = tax_tot_real_state - tax_indivIncome_real_state - tax_sales_gen_real_state,
+				 tax_nonPITsalestot_real_state = tax_tot_real_state - tax_indivIncome_real_state - tax_sales_tot_real_state,
+				 RGSPc = ifelse(year >= 1997, RGSP_NAICS, RGSP_SIC),
+				 RGSPc = 1000 * RGSPc,
+				 PIT_tax = 100 * tax_indivIncome_real_state/tax_tot_real_state, 
+				 tax_GSP = 100 * tax_tot_real_state / RGSPc)
+
+df_dlreal <- 
+	df_real %>% 
+	group_by(state_abb) %>% 
+	mutate_at(vars(-year), funs(100 * log(./lag(.)))) %>% 
+	mutate(RGSP = ifelse(year > 1997, RGSP_NAICS, RGSP_SIC))
+
+df_real
+df_dlreal
+
+
+# Nominal terms (BEA nominal GSP starts from 1963)
+df_nom <- 
+	df_RevGSP %>%
+	select(state_abb, year, 
+				 NGSP_SIC, NGSP_NAICS, 
+				 tax_tot_nom_state, 
+				 tax_indivIncome_nom_state,
+				 tax_sales_tot_nom_state,
+				 tax_sales_gen_nom_state,
+				 tax_sales_select_nom_state,
+				 tax_corpIncome_nom_state,
+				 tax_property_nom_state) %>% 
+	mutate(tax_other_nom_state = tax_tot_nom_state - tax_indivIncome_nom_state - 
+				 	                     tax_sales_tot_nom_state - tax_corpIncome_nom_state - tax_property_nom_state,
+				 tax_nonPITsalesgen_nom_state = tax_tot_nom_state - tax_indivIncome_nom_state - tax_sales_gen_nom_state,
+				 tax_nonPITsalestot_nom_state = tax_tot_nom_state - tax_indivIncome_nom_state - tax_sales_tot_nom_state,
+				 NGSPc = ifelse(year > 1997, NGSP_NAICS, NGSP_SIC),
+				 NGSPc = 1000 * NGSPc,
+				 PIT_tax = 100 * tax_indivIncome_nom_state/tax_tot_nom_state, 
+				 tax_GSP = 100 * tax_tot_nom_state / NGSPc)
+
+df_dlnom <- 
+	df_nom %>% 
+	group_by(state_abb) %>% 
+	mutate_at(vars(-year), funs(100 * log(./lag(.)))) %>% 
+	mutate(NGSP = ifelse(year > 1997, NGSP_NAICS, NGSP_SIC))
+
+df_nom
+df_dlnom
+
+
+
+
+
+#**********************************************************************
+#       Descriptive analysis 1: structure of state tax revenue     ####
+#**********************************************************************
+
+# For US aggregate:
+ # The share of sales tax is quite stable, ~total sales 50%, general sales tax 30%. 
+ # The share of personal income taxes has increased by half, from 25% in 1977 to 37% in 2015 
+ # The share of property tax is around 1.5%~2.5%. 
+ # The share of corp income tax decreased from 9% to 5%
+
+## Sales+PIT as a % of total tax revenue.
+ # Total sales
+ # tot sales + PIT accounts for 70%+ of tax revenue (most above 80%), 
+ # States with sales + PIT less than 70% of tax rev are: AK(30%), WY(42%), NH(43%), ND(43%), DE(47%), VT(57%), MT(63%)
+
+ # General sales
+ # general sales + PIT: mostly 60%+ (68% for US)
+ # States with general sales + PIT less than 50%:  AK, WY, NH, ND, DE, VT, MT
+
+
+# Year 2015: ordered by share of individual income tax
+ # Top Five in 2015:       OR(69%), VA(58%), NY(56%), MA(54%), CA(52%)
+ # states with % PIT < 5%: NH, TN, AK(0), FL, NV, SD, TX WA, WY 
+
+
+# Year 2015: ordered by share of sales tax
+ # sales tot
+ # Top five in 2015: TX(86.5%), SD(82%), FL(82%), NV(80%), WA(79%)
+ # Lowest five in 2015: OR(14%), DE(14%), MT(21%), AK(30%), NY(31%)   [NH 39%, why]
+
+ # sales general
+ # Top five in 2015: TX(61%), WA(61%), FL(59%), SD(58%), NV(54%)
+ # Lowest five in 2015(excluding five states with no gen sales): VT(12%), NY(17%), VA(18%), MA(21%), CO(22%)   
+
+ # Five states do not have statewide sales taxes: Alaska, Delaware, Montana, New Hampshire, and Oregon. 
+ # Of these, Alaska and Montana allow localities to charge local sales taxes.
+
+
+
+## Structure of state tax revenue 1977-2015, census data (from Urban) based on nominal terms
+taxStr_state_nom <- 
+df_RevGSP %>% 
+	filter(year %in% 1977:2015, state_abb %in% df_us_states$state_abb) %>% 
+	select(state_abb, year, 
+				 tax_tot_nom_state, 
+				 tax_indivIncome_nom_state,
+				 tax_sales_gen_nom_state,
+				 tax_sales_select_nom_state,
+				 tax_sales_tot_nom_state,
+         tax_property_nom_state,
+         tax_corpIncome_nom_state) %>% 
+	mutate(indivIncome_pct = 100 * tax_indivIncome_nom_state/tax_tot_nom_state,
+				 salesgen_pct    = 100 * tax_sales_gen_nom_state/tax_tot_nom_state,
+				 salesselect_pct = 100 * tax_sales_select_nom_state/tax_tot_nom_state,
+				 salestot_pct    = 100 * tax_sales_tot_nom_state/tax_tot_nom_state,
+				 property_pct    = 100 * tax_property_nom_state/tax_tot_nom_state,
+				 corpIncome_pct  = 100 * tax_corpIncome_nom_state/tax_tot_nom_state,
+				 PITsalesgen_pct = indivIncome_pct + salesgen_pct,
+				 PITsalestot_pct = indivIncome_pct + salestot_pct,
+				 nonPITsalesgen_pct  = 100 - PITsalesgen_pct,
+				 nonPITsalestot_pct  = 100 - PITsalestot_pct
+				 ) %>% 
+  select(state_abb, year,
+  			 tax_tot_nom_state,
+  			 indivIncome_pct,
+  			 salesgen_pct,
+  			 salestot_pct,
+  			 salesselect_pct,
+  			 property_pct,
+  			 corpIncome_pct,
+  			 PITsalesgen_pct,
+  			 nonPITsalesgen_pct,
+  			 PITsalestot_pct,
+  			 nonPITsalestot_pct)
+
+
+# Share of income tax
+taxStr_state_nom %>% 
+	filter(year == 2015) %>% 
+	select(state_abb, year, indivIncome_pct, salesgen_pct, PITsalesgen_pct, nonPITsalesgen_pct) %>% 
+	arrange(desc(indivIncome_pct))
+
+# Share of gen sales tax
+taxStr_state_nom %>% 
+	filter(year == 2015) %>% 
+	select(state_abb, year, indivIncome_pct, salesgen_pct, PITsalesgen_pct, nonPITsalesgen_pct) %>% 
+	arrange(desc(salesgen_pct))
+
+
+## Plotting % of sales against % of PIT
+taxStr_state_nom %>% 
+	filter(year == 2015, !is.na(state_abb)) %>% 
+	ggplot(aes(x = indivIncome_pct, y = salesgen_pct, label = state_abb)) + theme_bw() + RIG.themeLite() +  
+	geom_point() +
+	geom_text_repel(size = 3.5) + 
+	labs(x = "Share of individual income tax (%)",
+			 y = "Share of general sales tax (%)",
+			 title = "Shares of individual income tax and general sales tax across states in 2015")
+
+
+
+# tax revenue strucuture structure 
+
+df_temp <- 
+taxStr_state_nom %>% 
+	filter(year == 2015) %>% 
+	select(state_abb, year, tax_tot_nom_state, indivIncome_pct, salesgen_pct, salesselect_pct, nonPITsalestot_pct)
+
+df_taxRev_str <- 
+bind_rows(
+df_temp %>% arrange(desc(indivIncome_pct)) %>% filter(state_abb == "US"),
+
+df_temp %>% arrange(desc(indivIncome_pct)) %>% '['(1:5,),
+
+df_temp %>% arrange(desc(salesgen_pct)) %>% '['(1:5,)
+)
+
+write.xlsx2(df_taxRev_str, file = "policyBrief_out/Table_taxStr.xlsx")
+
+
+
+#*******************************************************************************
+#   Descriptive analysis 2:  GSP growth and tax growth                      ####
+#*******************************************************************************
+
+## Key points to make
+  # 1. For the US aggregate, income tax is more responsive to economic conditions than sales tax, 
+  #    which is especially true during the last two recessions. 
+  # 2. At state level, we have the same observation. There are variations in the PIT-GSP and sales_GSP relationship across states. 
+  # 3. The relationship between PIT and GSP may not be linear. Since the share of capital gains and losses have been increasing 
+  #    in income tax bases, it may make sense to add financial market variables as a determinants PIT. 
+  #    This will also solve the issue in modeling PIT and GSP with a linear relationship that their growth rates must have the same sign.    
+  # 4. Is sales tax linear to GSP? 
+  # 5. About Non-PIT-non_salesgen taxes
+  #     - select sales tax (about 50% of general sales tax) seems to be more stable than general 
+  #     - corp income tax is the most volatile component, but its share is small: ~5%
+  #     - The share of property tax is very small ~1.5%
+  #     - Other taxes (8~10%), show some cyclicity
+  #     - For now, may assume a fixed share of non_PIT_sales, say 15% in all taxes. Need to further check how to treat select sales tax 
+
+# Look at total tax revenue of 5 states with the highest and the lowest share of PIT. 
+
+states_PIT    <- c("US", "OR", "NY", "VA", "MA", "CA")
+states_sales  <- c("US", "TX", "WA", "FL", "SD", "NV") # sales tax states with zero PIT
+states_sales2 <- c("US", "HI", "AZ", "MS", "OH", "IN") # sales tax states with non-zero PIT
+
+
+## 1. GSP and TOTAL tax revenue over time
+ # US + PIT states
+df_dlreal %>% 
+	select(state_abb, year, RGSP, tax_tot_real_state) %>% 
+	filter(year >= 1987, state_abb %in% states_PIT) %>% 
+	gather(var, value, -state_abb, -year) %>% 
+	ungroup() %>% 
+	mutate(state_abb = factor(state_abb, levels = states_PIT)) %>% 
+	ggplot(aes(x = year, y = value, color = var ))+ theme_bw() + facet_grid(state_abb~.) + 
+	geom_line() +
+	geom_point() + 
+	geom_hline(yintercept = 1, linetype = 2) + 
+	scale_color_manual(values = c("darkgrey", "blue"))+
+	scale_x_continuous(breaks = seq(1950, 2015, 5)) + 
+	coord_cartesian(ylim = c(-15, 15)) + 
+	theme(legend.position="bottom") +
+	labs(title = "PIT states")
+	
+
+ # US + sales states with no PIT
+df_dlreal %>% 
+	select(state_abb, year, RGSP, tax_tot_real_state) %>% 
+	filter(year >= 1987, state_abb %in% states_sales) %>% 
+	gather(var, value, -state_abb, -year) %>% 
+	ungroup() %>% 
+	mutate(state_abb = factor(state_abb, levels = states_sales)) %>% 
+	ggplot(aes(x = year, y = value, color = var ))+ theme_bw() + facet_grid(state_abb~.) + 
+	geom_line() +
+	geom_point() + 
+	geom_hline(yintercept = 1, linetype = 2) + 
+	scale_color_manual(values = c("darkgrey", "blue"))+
+	scale_x_continuous(breaks = seq(1950, 2015, 5)) + 
+	coord_cartesian(ylim = c(-15, 15)) + 
+	theme(legend.position="bottom") + 
+	labs(title = "sales states")
+
+ # US + sales states with PIT
+df_dlreal %>% 
+	select(state_abb, year, RGSP, tax_tot_real_state) %>% 
+	filter(year >= 1987, state_abb %in% states_sales2) %>% 
+	gather(var, value, -state_abb, -year) %>% 
+	ungroup() %>% 
+	mutate(state_abb = factor(state_abb, levels = states_sales2)) %>% 
+	ggplot(aes(x = year, y = value, color = var ))+ theme_bw() + facet_grid(state_abb~.) + 
+	geom_line() +
+	geom_point() + 
+	geom_hline(yintercept = 1, linetype = 2) + 
+	scale_color_manual(values = c("darkgrey", "blue"))+
+	scale_x_continuous(breaks = seq(1950, 2015, 5)) + 
+	coord_cartesian(ylim = c(-15, 15)) + 
+	theme(legend.position="bottom") + 
+	labs(title = "sales states")
+
+
+## 2.  GSP and income tax and sales tax
+ # Top 5 income tax states
+df_dlreal %>% 
+	select(state_abb, year, RGSP, tax_indivIncome_real_state, tax_sales_gen_real_state) %>% 
+	filter(year >= 1987, state_abb %in% states_PIT) %>% 
+	gather(var, value, -state_abb, -year) %>% 
+	ungroup() %>% 
+	mutate(state_abb = factor(state_abb, levels = states_PIT)) %>% 
+	ggplot(aes(x = year, y = value, color = var ))+ theme_bw() + facet_grid(state_abb~.) + 
+	geom_line() +
+	geom_point() + 
+	geom_hline(yintercept = 1, linetype = 2) + 
+	scale_color_manual(values = c("darkgrey", "blue", "lightblue"))+
+	scale_x_continuous(breaks = seq(1950, 2015, 5)) + 
+	coord_cartesian(ylim = c(-20, 20)) + 
+	theme(legend.position="bottom") +
+	labs(title = "PIT")
+
+
+ # Top 5 sales tax states with no PIT
+df_dlreal %>% 
+	select(state_abb, year, RGSP, tax_indivIncome_real_state, tax_sales_gen_real_state) %>% 
+	filter(year >= 1987, state_abb %in% states_sales) %>% 
+	gather(var, value, -state_abb, -year) %>% 
+	ungroup() %>% 
+	mutate(state_abb = factor(state_abb, levels = states_sales)) %>% 
+	ggplot(aes(x = year, y = value, color = var ))+ theme_bw() + facet_grid(state_abb~.) + 
+	geom_line() +
+	geom_point() + 
+	geom_hline(yintercept = 1, linetype = 2) + 
+	scale_color_manual(values = c("darkgrey", "blue", "lightblue"))+
+	scale_x_continuous(breaks = seq(1950, 2015, 5)) + 
+	coord_cartesian(ylim = c(-15, 15)) + 
+	theme(legend.position="bottom") +
+	labs(title = "sales1")
+
+# 5 sales tax states with PIT
+df_dlreal %>% 
+	select(state_abb, year, RGSP, tax_indivIncome_real_state, tax_sales_gen_real_state) %>% 
+	filter(year >= 1987, state_abb %in% states_sales2) %>% 
+	gather(var, value, -state_abb, -year) %>% 
+	ungroup() %>% 
+	mutate(state_abb = factor(state_abb, levels = states_sales2)) %>% 
+	ggplot(aes(x = year, y = value, color = var ))+ theme_bw() + facet_grid(state_abb~.) + 
+	geom_line() +
+	geom_point() + 
+	geom_hline(yintercept = 1, linetype = 2) + 
+	scale_color_manual(values = c("darkgrey", "blue", "lightblue"))+
+	scale_x_continuous(breaks = seq(1950, 2015, 5)) + 
+	coord_cartesian(ylim = c(-15, 15)) + 
+	theme(legend.position="bottom") +
+	labs(title = "sales2")
+
+
+## 3. non-PIT-non-sales 
+
+# Top 5 income tax states
+df_dlreal %>% 
+	select(state_abb, year, RGSP, tax_indivIncome_real_state, tax_sales_gen_real_state, tax_nonPITsalestot_real_state) %>% 
+	filter(year >= 1987, state_abb %in% states_PIT) %>% 
+	gather(var, value, -state_abb, -year) %>% 
+	ungroup() %>% 
+	mutate(state_abb = factor(state_abb, levels = states_PIT)) %>% 
+	ggplot(aes(x = year, y = value, color = var ))+ theme_bw() + facet_grid(state_abb~.) + 
+	geom_line() +
+	geom_point() + 
+	geom_hline(yintercept = 1, linetype = 2) + 
+	scale_color_manual(values = c("darkgrey", "blue", "lightblue", "lightgreen"))+
+	scale_x_continuous(breaks = seq(1950, 2015, 5)) + 
+	coord_cartesian(ylim = c(-20, 20)) + 
+	theme(legend.position="bottom") +
+	labs(title = "PIT")
+
+# 
+fct_order = c( "tax_tot_real_state",
+	             "tax_indivIncome_real_state",
+							 "tax_sales_gen_real_state",
+							 "tax_sales_select_real_state",
+							 "tax_corpIncome_real_state",
+							 "tax_property_real_state",
+							 "tax_other_real_state")
+
+fct_label = c("Total tax",
+	            "PIT",
+							"sales_general",
+							"sales_select",
+							"corpIncome",
+							"property",
+							"other")
+
+df <- 
+df_dlreal %>% 
+	filter(year %in% 1988:2015, state_abb %in% df_us_states$state_abb) %>% 
+	select(state_abb, year, 
+				 RGSP,
+				 tax_tot_real_state,
+				 tax_indivIncome_real_state,
+				 tax_sales_gen_real_state,
+				 tax_sales_select_real_state,
+				 tax_corpIncome_real_state,
+				 tax_property_real_state,
+				 tax_other_real_state) %>% 
+	gather(taxtype, value, -state_abb, -year, -RGSP) %>% 
+	mutate(var = "tax")
+
+df1 <- df %>% select(state_abb, year, taxtype, var, value)
+df2 <- df %>% mutate(value = RGSP, var = "RGSP") %>% select(state_abb, year, taxtype, var, value) 
+df3 <- bind_rows(df1, df2) %>% 
+	mutate(taxtype = factor(taxtype, levels = fct_order, labels = fct_label))
+
+
+
+df3 %>% filter(state_abb == "US") %>% 
+	ggplot(aes(x = year, y = value, color = var)) + theme_bw() + 
+	facet_grid(taxtype~.) + 
+	geom_line() + 
+	geom_point() + 
+	geom_hline(yintercept = 1, linetype = 2) +
+	scale_color_manual(values = c("darkgrey", "blue"))+
+	coord_cartesian(ylim = c(-25, 25))
+	
+df_real_pct <- 
+df_real %>% 
+	filter(state_abb %in% df_us_states$state_abb) %>% 
+	mutate(
+				 pct_indivIncome  = 100 * tax_indivIncome_real_state/tax_tot_real_state,
+				 pct_sales_gen    = 100 * tax_sales_gen_real_state/tax_tot_real_state,
+				 pct_sales_select = 100 * tax_sales_select_real_state/tax_tot_real_state,
+				 pct_corpIncome   = 100 * tax_corpIncome_real_state/tax_tot_real_state,
+				 pct_property     = 100 * tax_property_real_state/tax_tot_real_state,
+				 pct_other        = 100 * tax_other_real_state/tax_tot_real_state ) %>% 
+	select(state_abb, year, 
+				 pct_indivIncome, 
+				 pct_sales_gen,   
+				 pct_sales_select,
+				 pct_corpIncome,  
+				 pct_property,   
+				 pct_other) 
+	
+
+df_real_pct %>%
+	filter(state_abb == "US")
+	
+df_real_pct %>%
+	filter(year == 2015, state_abb %in% states_PIT)
+
+df_real_pct %>%
+	filter(year == 2015, state_abb %in% states_sales)
+
+df_real_pct %>%
+	filter(year == 2015, state_abb %in% states_sales2)
+
+
+
+#*******************************************************************************
+#                 Regression analysis: data preparation 1        ####
+#*******************************************************************************
+
+
+# GSP and real tax revenue data
+# Notes:
+  #  GSP from 1988-2016
+  #  tax from 1978-2015
+  #  Common period:1988-2015
+  #  Nominal GSP goes back to 1964, may want to extend the real GSP series by adjusting pre-1988 nominal GSP for inflation   
+
+df_dlRevGSP_reg <- 
+df_dlreal %>% 
+	select(state_abb, year,
+				 RGSP,
+				 tax_tot_real_state, 
+				 tax_indivIncome_real_state,
+				 tax_sales_gen_real_state,
+				 tax_sales_select_real_state,
+				 tax_sales_tot_real_state,
+				 tax_corpIncome_real_state,
+				 tax_property_real_state,
+				 tax_other_real_state,
+				 tax_nonPITsalestot_real_state) %>% 
+	filter(year %in% 1978:2015, state_abb %in% df_us_states$state_abb) %>% 
+	mutate_at(vars(-year), funs(./100))
+df_dlRevGSP_reg 
+
+
+
+
+
+
+
+# Asset return data from SBBI and national GDP (FRED, check it against the aggregate GSP for all states)
+df_dataAll_y %>% names()
+
+df_SBBI_reg <- 
+df_dataAll_y %>% 
+	select(year, month, yearMon, 
+				 GDP_FRED,        # National GDP from FRED
+				 CPIU_NA_FRED,    # CPI, urban resident, not seasonally adjusted. FRED
+				 Inflation_Index, # SBBI, inflation index 
+				 LCapStock_TRI,   # SBBI, large cap stock total return index (SP500 total return index)
+				 LCapStock_CAI,   # SBBI, large cap stock capital appreciation index (SP500 price index)
+				 CBond_TRI,       # SBBI, corp bond total return
+				 LTGBond_TRI,     # SBBI, long-term gov bond total return (20y?)
+				 MTGBond_TRI,     # SBBI, medium-term gov bond total return
+				 LTGBond_Yield    # SBBI, long-term gov bond yield
+				 ) %>%  
+  filter(year %in% 1977:2015) %>% 
+	mutate_at(vars(-year, -month, -yearMon, -LTGBond_Yield), funs(log(./lag(.))) )
+df_SBBI_reg 
+
+
+
+# Asset return data from NYU Stern 
+df_assetReturn_nyu <- read_excel(paste0(dir_data_raw, "/histretSP_201801.xls"), sheet = "Returns by year", skip = 17)[,1:4]
+names(df_assetReturn_nyu) <- c("year", "SP500_return_nyu", "TBill_return_nyu", "TBond_return_nyu")
+df_assetReturn_nyu %<>% mutate(year = as.numeric(year)) %>% filter(year <= 2017)
+df_assetReturn_nyu
+
+
+# Captial gain / losses data for states
+  # From Don
+  # level in $billions
+rlzCapGains_nom <- read_excel(paste0(dir_data_raw, "/NationalCapitalGains_yy.xlsx"), sheet = "CapGains", range = c("A5:C67"))
+names(rlzCapGains_nom) <- c("year", "capgains", "capgains_chg")
+rlzCapGains_nom
+
+rlzCapGains_nom_rev <- read_excel(paste0(dir_data_raw, "/NationalCapitalGains_yy.xlsx"), sheet = "CapGains_rev", range = c("A8:E30"))[,-(2:3)]
+rlzCapGains_nom_rev
+
+
+df_real_reg <- 
+	df_dlRevGSP_reg %>% 
+	left_join(df_SBBI_reg) %>% 
+	left_join(df_assetReturn_nyu) %>% 
+	left_join(rlzCapGains_nom) %>% 
+	left_join(rlzCapGains_nom_rev)
+
+df_real_reg # all variables 1988-2015
+
+
+## Extending RGSP series by adjusting NGSP for inflation 
+
+df_GSPext <- df_dlnom %>% select(state_abb, year, NGSP) %>% 
+	           left_join(df_SBBI_reg %>% select(year, Inflation_Index)) %>% 
+	           mutate(RGSP_ext = NGSP/100 - Inflation_Index) %>% 
+	           select(state_abb, year, RGSP_ext)
+     
+df_real_reg %<>% left_join(df_GSPext) %>% 
+	mutate(RGSP_ext = ifelse(year < 1988, RGSP_ext, RGSP ))
+
+
+df_real_reg %>% 
+	select(state_abb, year, RGSP_ext, RGSP) %>% 
+	filter(state_abb == "US") %>% 
+	gather(var, value, -state_abb, -year) %>% 
+	qplot(x = year, y = value, color = var, data =.,  geom = c("line", "point"))
+
+
+
+
+
+
+#*******************************************************************************
+#     Regression analysis: data prep 2 asset return and PIT                 ####
+#*******************************************************************************
+
+# Goal: Estimate the relationship between real PIT growth, real GSP growth, and asset return (nominal),
+#       and see if there is structure breek around 2000. (if the recent two recessions are different.)
+
+# Notes:
+ # Need to first examine the relationship between realized capgains, tax revenue from realized capgains, and asset returns.   
+ # Need an argument for using investment returns in the PIT regression
+
+
+
+
+# 1. Asset returns and captial gains, realized captial gains and PIT
+
+df_temp <- 
+df_real_reg %>% 
+	select(state_abb, year, 
+				 LCapStock_CAI, LCapStock_TRI, 
+				 LTGBond_TRI,   LTGBond_Yield, 
+				 SP500_return_nyu, 
+				 TBond_return_nyu, 
+				 capgains_chg, 
+				 tax_gains_chg, 
+				 tax_indivIncome_real_state) %>% 
+	filter(state_abb == "US")
+
+# quick look at how the total bond returns from SBBI and NYU Stern differ
+df_temp %>% 
+	select(state_abb, year, LTGBond_TRI, TBond_return_nyu) %>% 
+	gather(var, value, -state_abb, -year) %>% 
+	qplot(x = year, y = value, color = var, data=.,  geom = c("line", "point")) + theme_bw() + 
+	scale_x_continuous(breaks = seq(1950, 2020, 5))
+# The two sources show very different returns, especially after 2000. 
+# We may want to stick with the SBBI return. (SBBI's calculation looks more rigorous) 
+
+
+df_temp %>% 
+	select(state_abb, year, LCapStock_TRI, SP500_return_nyu) %>% 
+	gather(var, value, -state_abb, -year) %>% 
+	qplot(x = year, y = value, color = var, data=.,  geom = c("line", "point")) + theme_bw() + 
+	scale_x_continuous(breaks = seq(1950, 2020, 5))
+# It seems there is a lag in SBBI SP500 return
+
+
+# Plotting asset returns and realized capital gains 
+# Stock
+fig_returnCapGains <- 
+df_temp %>% 
+	select(state_abb, year, LCapStock_TRI, capgains_chg) %>%  
+	gather(var, value, -state_abb, -year) %>% 
+	mutate(var = factor(var, levels = c("LCapStock_TRI", "capgains_chg"),
+											     labels = c("SP500 Total Return", "Change in realized capital gains"))) %>% 
+	qplot(x = year, y = 100 * value, color = var, data=.,  geom = c("line", "point")) + 
+	theme_bw() + RIG.themeLite() +  
+	
+	scale_x_continuous(breaks = seq(1950, 2020, 5)) + 
+	scale_color_manual(values = c(RIG.green, "blue")) + 
+	labs(x = NULL, y = "Percent", color = NULL,
+			 title = "Total stock returns and realized capital gains") + 
+	theme(legend.position = "bottom")
+fig_returnCapGains
+
+
+# Long-term gov bond, SBBI
+df_temp %>% 
+	select(state_abb, year, LTGBond_TRI, capgains_chg) %>%  
+	gather(var, value, -state_abb, -year) %>% 
+	qplot(x = year, y = value, color = var, data=.,  geom = c("line", "point")) + theme_bw() + 
+	scale_x_continuous(breaks = seq(1950, 2020, 5))
+# No obvious correlation 
+
+# Long-term gov bond, NYU
+df_temp %>% 
+	select(state_abb, year, TBond_return_nyu, capgains_chg) %>%  
+	gather(var, value, -state_abb, -year) %>% 
+	qplot(x = year, y = value, color = var, data=.,  geom = c("line", "point")) + theme_bw() + 
+	scale_x_continuous(breaks = seq(1950, 2020, 5))
+#
+
+
+# Plotting realized captial gains 
+ # High correlation between 1-year lag of realized captial gain and capital gains tax receipts 
+ # High correlation between captial gain tax receipt and state PIT
+ # Question: the share of capital gain tax in total PIT
+
+fig_captainsTax <- 
+df_temp	%>% 
+	select(state_abb, year, capgains_chg, tax_gains_chg, tax_indivIncome_real_state) %>% 
+	mutate(capgains_chg = lag(capgains_chg)) %>% 
+	gather(var, value, -state_abb, -year) %>% 
+	mutate(var = factor(var, levels = c("capgains_chg", "tax_gains_chg", "tax_indivIncome_real_state"),
+											     labels = c("Change in realized capital gains (1 year lag)", "Change in capital gains tax receipts", "change in state individual tax"))) %>%
+	qplot(x = year, y = 100 * value, color = var, data=.,  geom = c("line", "point")) + 
+	theme_bw() + RIG.themeLite() + 
+	geom_hline(yintercept = 0, linetype = 2) + 
+	scale_x_continuous(breaks = seq(1950, 2020, 5)) + 
+	scale_color_manual(values = c("blue", RIG.red, "darkgrey")) + 
+	labs(x = NULL, y = "Percent", color = NULL,
+			 title = "Realized capital gains and tax revenues") + 
+	theme(legend.position = "bottom")
+fig_captainsTax
+
+
+
+
+#*******************************************************************************
+#     Regression analysis US: PIT               ####
+#*******************************************************************************
+
+# National level regressions
+df_reg_temp <- 
+	df_real_reg %>% 
+	select(state_abb, year, 
+				 tax_indivIncome_real_state, 
+				 tax_sales_gen_real_state,
+				 tax_sales_select_real_state,
+				 tax_sales_tot_real_state,
+				 tax_nonPITsalestot_real_state,
+				 RGSP,
+				 RGSP_ext,
+				 GDP_FRED,
+				 LCapStock_TRI,
+				 LTGBond_TRI,
+				 capgains_chg,
+				 tax_gains_chg) %>% 
+	mutate(Lagcapgains_chg  = lag(capgains_chg),
+				 LagLCapStock_TRI = lag(LCapStock_TRI),
+				 after99 = ifelse(year > 2001, TRUE, FALSE),
+				 recession = ifelse(year %in% c(2001:2002, 2008:2009), TRUE, FALSE),
+				 RGSP_after99 = RGSP*after99)
+
+df_reg_temp
+
+
+# PIT, National level
+
+# GSP only
+
+mod_PIT_GSP <- 
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%
+	lm(tax_indivIncome_real_state ~ RGSP, data = .) %T>% 
+	print(summary(.))
+mod_PIT_GSP %>% summary
+
+mod_PIT_GSPd <- 
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%
+	lm(tax_indivIncome_real_state ~ RGSP + RGSP:after99, data = .) 
+mod_PIT_GSPd %>% summary
+
+
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%
+	lm(tax_indivIncome_real_state ~ RGSP:after99, data = .) %>% 
+	summary
+
+
+
+# GSP and SP500 total return
+
+mod_PIT_GSP.stock <- 
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	#mutate(RGSP = RGSP_ext) %>% 
+	mutate(RGSP = GDP_FRED) %>% 
+	lm(tax_indivIncome_real_state ~ RGSP + LCapStock_TRI, data = .)
+mod_PIT_GSP.stock %>% summary
+# only SP500 is significant
+
+# for after 1999 only
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	#mutate(RGSP = RGSP_ext) %>% 
+	mutate(RGSP = GDP_FRED)  %>% 
+	lm(tax_indivIncome_real_state ~ RGSP + LCapStock_TRI:after99, data = .) %>% 
+	summary
+
+df_reg_temp %>% filter(state_abb == "US") %>%
+	filter(year > 1999) %>% 
+	#mutate(RGSP = RGSP_ext) %>% 
+	mutate(RGSP = GDP_FRED)  %>% 
+	lm(tax_indivIncome_real_state ~ RGSP + LCapStock_TRI, data = .) %>% 
+	summary
+
+
+
+mod_PIT_GSPd.stockd <- 
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>% 
+	#mutate(RGSP = RGSP_ext) %>% 
+	lm(tax_indivIncome_real_state ~ RGSP + RGSP:after99 + LCapStock_TRI + LCapStock_TRI:after99, data =.)
+mod_PIT_GSPd.stockd %>% summary
+
+mod_PIT_GSP.stockd <- 
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>% 
+	#mutate(RGSP = RGSP_ext) %>% 
+	lm(tax_indivIncome_real_state ~ RGSP + LCapStock_TRI + LCapStock_TRI:after99, data =.) 
+mod_PIT_GSP.stockd %>% summary
+
+# No variable is significant even at 10% level
+# but passes F test. 
+
+
+
+# GSP and Lag SP500 total return
+mod_PIT_GSP.Lagstock <- 
+	df_reg_temp %>% filter(state_abb == "US") %>% 
+	#mutate(RGSP = RGSP_ext) %>% 
+	mutate(RGSP = GDP_FRED) %>% 
+	lm(tax_indivIncome_real_state ~ RGSP + LagLCapStock_TRI, data = .)
+mod_PIT_GSP.Lagstock %>% summary
+# only SP500 is significant
+
+mod_PIT_GSPd.Lagstockd <- 
+	df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>% 
+	#mutate(RGSP = RGSP_ext) %>% 
+	lm(tax_indivIncome_real_state ~ RGSP + RGSP:after99 + LagLCapStock_TRI + LagLCapStock_TRI:after99, data =.)
+mod_PIT_GSPd.Lagstockd %>% summary
+
+mod_PIT_GSP.Lagstockd <- 
+	df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>% 
+	#mutate(RGSP = RGSP_ext) %>% 
+	lm(tax_indivIncome_real_state ~ RGSP + LagLCapStock_TRI + LagLCapStock_TRI:after99, data =.) 
+mod_PIT_GSP.Lagstockd %>% summary
+
+# No variable is significant even at 10% level
+# but passes F test. 
+
+
+
+
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>% 
+	lm(tax_indivIncome_real_state ~ RGSP:after99 + LCapStock_TRI:after99, data =.) %>% 
+	summary
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>% 
+	lm(tax_indivIncome_real_state ~ RGSP + LCapStock_TRI:after99, data =.) %>% 
+	summary
+  # This is similar to run regressions for data before and after 1999 separately 
+  # Only SP500 after 1999 is significant
+
+
+
+
+# GSP and lag of capital gains
+mod_PIT_GSP.Lagcapgain <- 
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%
+	lm(tax_indivIncome_real_state ~ RGSP + Lagcapgains_chg, data = .) 
+mod_PIT_GSP.Lagcapgain%>% summary
+  # Extremely significant. very high R-squared. RGSP is insignificant (p = 0.13)
+
+mod_PIT_GSPd.Lagcapgaind <-
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%
+	lm(tax_indivIncome_real_state ~ RGSP + RGSP:after99 + Lagcapgains_chg+  Lagcapgains_chg:after99, data = .) 
+mod_PIT_GSPd.Lagcapgaind %>% summary
+# GSP before 1999 and SP500 after 1999 (10% level) are significant
+
+mod_PIT_GSP.Lagcapgaind <- 
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	lm(tax_indivIncome_real_state ~ RGSP + Lagcapgains_chg + Lagcapgains_chg:after99, data = .) 
+mod_PIT_GSP.Lagcapgaind %>% summary
+# GSP and SP500 after 1999 (10% level) are significant
+
+
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	lm(tax_indivIncome_real_state ~ RGSP:after99 +  Lagcapgains_chg:after99, data = .) %>% 
+	summary
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	lm(tax_indivIncome_real_state ~ RGSP + Lagcapgains_chg:after99, data = .) %>% 
+	summary
+
+
+
+
+
+
+
+# GSP and capital gains taxes (from 1996) 
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%
+	lm(tax_indivIncome_real_state ~ RGSP + tax_gains_chg, data = .) %>% 
+	summary
+
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%
+	lm(tax_indivIncome_real_state ~ RGSP:after99 + tax_gains_chg:after99, data = .) %>% 
+	summary
+
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%
+	lm(tax_indivIncome_real_state ~ RGSP + tax_gains_chg:after99, data = .) %>% 
+	summary
+
+
+# Extremely significant, of course. similar R-squared as capital gains
+
+
+## Using Stock returns as a proxy for capital gains losses. 
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%
+	lm(capgains_chg ~ LCapStock_TRI, data = .) %>% 
+	summary
+  # intercept not significant, parameter close to 1. 
+
+
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%
+	lm(capgains_chg ~ LCapStock_TRI + LCapStock_TRI:after99, data = .) %>% 
+	summary
+
+
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%
+	lm(capgains_chg ~ LCapStock_TRI:after99, data = .) %>% 
+	summary
+  # if regressed separately, response to stock return is higher after 1999.   
+
+
+
+
+## For draft:
+
+Table_PIT_param <- 
+bind_rows(
+   mod_PIT_GSP               %>% tidy() %>% mutate(mod = "PIT_GSP"),
+   mod_PIT_GSPd              %>% tidy() %>% mutate(mod = "PIT_GSPd"),
+   mod_PIT_GSP.Lagstock      %>% tidy() %>% mutate(mod = "PIT_GSP.Lagstock"),
+   mod_PIT_GSPd.Lagstockd    %>% tidy() %>% mutate(mod = "PIT_GSPd.Lagstockd"),
+   mod_PIT_GSP.Lagstockd     %>% tidy() %>% mutate(mod = "PIT_GSP.Lagstockd"),
+   
+   mod_PIT_GSP.Lagcapgain    %>% tidy() %>% mutate(mod = "PIT_GSP.Lagcapgain"),
+   mod_PIT_GSPd.Lagcapgaind  %>% tidy() %>% mutate(mod = "PIT_GSPd.Lagcapgaind"),
+   mod_PIT_GSP.Lagcapgaind    %>% tidy() %>% mutate(mod = "PIT_GSP.Lagcapgaind")
+)
+
+Table_PIT_glance <- 
+bind_rows(
+   mod_PIT_GSP               %>% glance() %>% mutate(mod = "PIT_GSP"),
+   mod_PIT_GSPd              %>% glance() %>% mutate(mod = "PIT_GSPd"),
+   mod_PIT_GSP.Lagstock      %>% glance() %>% mutate(mod = "PIT_GSP.Lagstock"),
+   mod_PIT_GSPd.Lagstockd    %>% glance() %>% mutate(mod = "PIT_GSPd.Lagstockd"),
+   mod_PIT_GSP.Lagstockd     %>% glance() %>% mutate(mod = "PIT_GSP.Lagstockd"),
+   
+   mod_PIT_GSP.Lagcapgain    %>% glance() %>% mutate(mod = "PIT_GSP.Lagcapgain"),
+   mod_PIT_GSPd.Lagcapgaind  %>% glance() %>% mutate(mod = "PIT_GSPd.Lagcapgaind"),
+   mod_PIT_GSP.Lagcapgaind   %>% glance() %>% mutate(mod = "PIT_GSP.Lagcapgaind")
+)
+
+
+write.xlsx2(Table_PIT_param, file = paste0("policyBrief_out/", "Table_PIT_param.xlsx"), sheet = "PIT_param" )
+write.xlsx2(Table_PIT_glance, file = paste0("policyBrief_out/", "Table_PIT_param.xlsx"), sheet = "PIT_glance", append = TRUE)
+
+
+mod_PIT_GSP 
+
+#*******************************************************************************
+#     Regression analysis US: Sales                ####
+#*******************************************************************************
+
+# General sales National level
+
+mod_salesgen_GSP <- 
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%
+	lm(tax_sales_gen_real_state ~ RGSP, data = .) 
+mod_salesgen_GSP %>% summary
+
+mod_salesgen_GSPrec <- # with recession dummy
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%
+	lm(tax_sales_gen_real_state ~ RGSP + RGSP:recession, data = .) 
+mod_salesgen_GSPrec %>% summary
+
+mod_salesgen_GSPd <- 
+df_reg_temp %>% filter(state_abb == "US") %>% # with break dummy
+	mutate(RGSP = GDP_FRED) %>%                                         
+	lm(tax_sales_gen_real_state ~ RGSP + RGSP:after99, data = .) 
+mod_salesgen_GSPd %>% summary
+
+# elasticity is about 1.2 (note this is smaller the GSP elasticity of PIT when SP500 is present) 
+# GSP/after1999 interaction not significant at 10%, but p is 0.12
+# GSP/recession interaction is NOT significant
+
+
+# Select sales
+mod_salesSelect_GSP <- 
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%  
+	lm(tax_sales_select_real_state ~ RGSP, data = .)
+mod_salesSelect_GSP %>% summary
+
+mod_salesSelect_GSPd <- 
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%  
+	lm(tax_sales_select_real_state ~ RGSP + RGSP:after99, data = .) 
+mod_salesSelect_GSPd %>% summary
+
+mod_salesSelect_GSPrec <- 
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%  
+	lm(tax_sales_select_real_state ~ RGSP + RGSP:recession, data = .) 
+mod_salesSelect_GSPrec %>% summary
+
+# select sales tax: elasticity is about 0.5. 
+# 
+
+# Select sales
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%  
+	lm(tax_sales_tot_real_state ~ RGSP, data = .) %>% 
+	summary
+
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%  
+	lm(tax_sales_tot_real_state ~ RGSP + RGSP:after99, data = .) %>% 
+	summary
+
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%  
+	lm(tax_sales_tot_real_state ~ RGSP + RGSP:recession, data = .) %>% 
+	summary
+
+# elasticity for sales tax is about 0.95~1. 
+# This is consistent what we can infer from the separate model results of general and select sales tax and their share in total sales
+
+
+## Table for policy brief
+
+Table_sales_param <- 
+	bind_rows(
+		mod_salesgen_GSP               %>% tidy() %>% mutate(mod = "salesgen_GSP"),
+		mod_salesgen_GSPd              %>% tidy() %>% mutate(mod = "salesgen_GSPd"),
+		mod_salesgen_GSPrec            %>% tidy() %>% mutate(mod = "salesgen_GSPrec"),
+		
+		mod_salesSelect_GSP               %>% tidy() %>% mutate(mod = "salesSelect_GSP"),
+		mod_salesSelect_GSPd              %>% tidy() %>% mutate(mod = "salesSelect_GSPd"),
+		mod_salesSelect_GSPrec            %>% tidy() %>% mutate(mod = "salesSelect_GSPrec")
+	)
+
+Table_sales_glance <- 
+	bind_rows(
+		mod_salesgen_GSP               %>% glance() %>% mutate(mod = "salesgen_GSP"),
+		mod_salesgen_GSPd              %>% glance() %>% mutate(mod = "salesgen_GSPd"),
+		mod_salesgen_GSPrec            %>% glance() %>% mutate(mod = "salesgen_GSPrec"),
+		
+		mod_salesSelect_GSP            %>% glance() %>% mutate(mod = "salesSelect_GSP"),
+		mod_salesSelect_GSPd           %>% glance() %>% mutate(mod = "salesSelect_GSPd"),
+		mod_salesSelect_GSPrec         %>% glance() %>% mutate(mod = "salesSelect_GSPrec")
+	)
+
+
+write.xlsx2(Table_sales_param,  file = paste0("policyBrief_out/", "Table_sales_param.xlsx"), sheet = "sales_param" )
+write.xlsx2(Table_sales_glance, file = paste0("policyBrief_out/", "Table_sales_param.xlsx"), sheet = "sales_glance", append = TRUE)
+
+
+
+## figures for sales tax
+
+# US + sales states with no PIT
+fig_salesGDP <- 
+df_dlreal %>% 
+	select(state_abb, year, RGSP, tax_sales_gen_real_state, tax_sales_select_real_state) %>% 
+	filter(year >= 1987, state_abb %in% "US") %>% 
+	gather(var, value, -state_abb, -year) %>% 
+	mutate(var = factor(var, levels = c("RGSP", "tax_sales_gen_real_state", "tax_sales_select_real_state"),
+											labels = c("GDP growth", "Real growth of general sales tax", "Real growth of select sales tax"))) %>%
+	ungroup() %>% 
+	mutate(state_abb = factor(state_abb, levels = states_sales)) %>% 
+	ggplot(aes(x = year, y = value, color = var ))+ theme_bw() + RIG.themeLite() + # facet_grid(state_abb~.) + 
+	geom_line() +
+	geom_point() + 
+	geom_hline(yintercept = 1, linetype = 2) + 
+	scale_color_manual(values = c("darkgrey", "blue", "lightblue"))+
+	scale_x_continuous(breaks = seq(1950, 2015, 5)) + 
+	coord_cartesian(ylim = c(-8, 8)) + 
+	theme(legend.position="bottom") + 
+	labs(title = "Growth of state sales taxes and growth of GDP", 
+			 x = NULL, y = "Percent",
+			 color = NULL)
+fig_salesGDP
+
+ggsave(paste0(dir_fig_out, "fig_salesGDP.png"), fig_salesGDP, width = 10*0.8, height = 5*0.8)
+
+
+
+
+
+
+#*******************************************************************************
+#     Regression analysis US: Other             ####
+#*******************************************************************************
+
+# non PIT/sales National level (corp income + property + other)
+mod_other_GSP <- 
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>% 
+	lm(tax_nonPITsalestot_real_state ~ RGSP, data = .) 
+mod_other_GSP %>% summary
+# significant, largely attributable to corp income?
+
+mod_other_GSPd <- 
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%
+	lm(tax_nonPITsalestot_real_state ~ RGSP + RGSP:after99, data = .) 
+mod_other_GSPd  %>% 	summary
+# interaction with after1999 significant
+
+mod_other_GSPrec <- 
+df_reg_temp %>% filter(state_abb == "US") %>% 
+	mutate(RGSP = GDP_FRED) %>%
+	lm(tax_nonPITsalestot_real_state ~ RGSP + RGSP:recession, data = .) 
+mod_other_GSPrec %>%  summary
+# interaction with recession not significant
+
+
+
+Table_other_param <- 
+	bind_rows(
+		mod_other_GSP               %>% tidy() %>% mutate(mod = "other_GSP"),
+		mod_other_GSPd              %>% tidy() %>% mutate(mod = "other_GSPd"),
+		mod_other_GSPrec            %>% tidy() %>% mutate(mod = "other_GSPrec"),
+	)
+
+Table_other_glance <- 
+	bind_rows(
+		mod_other_GSP               %>% glance() %>% mutate(mod = "other_GSP"),
+		mod_other_GSPd              %>% glance() %>% mutate(mod = "other_GSPd"),
+		mod_other_GSPrec            %>% glance() %>% mutate(mod = "other_GSPrec"),
+	)
+
+
+write.xlsx2(Table_other_param,  file = paste0("policyBrief_out/", "Table_other_param.xlsx"), sheet = "other_param" )
+write.xlsx2(Table_other_glance, file = paste0("policyBrief_out/", "Table_other_param.xlsx"), sheet = "other_glance", append = TRUE)
+
+
+
+# US + sales states with no PIT
+fig_otherGDP <- 
+	df_dlreal %>% 
+	select(state_abb, year, RGSP, tax_nonPITsalestot_real_state) %>% 
+	filter(year >= 1987, state_abb %in% "US") %>% 
+	gather(var, value, -state_abb, -year) %>% 
+	mutate(var = factor(var, levels = c("RGSP", "tax_nonPITsalestot_real_state"),
+											labels = c("GDP growth", "Real growth of non-personal-income-non-sales taxes"))) %>%
+	ungroup() %>% 
+	mutate(state_abb = factor(state_abb, levels = states_sales)) %>% 
+	ggplot(aes(x = year, y = value, color = var ))+ theme_bw() + RIG.themeLite() + # facet_grid(state_abb~.) + 
+	geom_line() +
+	geom_point() + 
+	geom_hline(yintercept = 1, linetype = 2) + 
+	scale_color_manual(values = c("darkgrey", "blue", "lightblue"))+
+	scale_x_continuous(breaks = seq(1950, 2015, 5)) + 
+	coord_cartesian(ylim = c(-13, 13)) + 
+	theme(legend.position="bottom") + 
+	labs(title = "Growth of state non-personal-income-non-sales taxes and GDP growth", 
+			 x = NULL, y = "Percent",
+			 color = NULL)
+fig_otherGDP
+
+ggsave(paste0(dir_fig_out, "fig_otherGDP.png"), fig_otherGDP, width = 10*0.8, height = 5*0.8)
+
+
+
+
+
+#*******************************************************************************
+#       Regression analysis panel: PIT               ####
+#*******************************************************************************
+library(plm)
+
+
+# Continent states only, excluding states with no PIT
+df_reg_plm_PIT <-  df_reg_temp %>% 
+	filter(!state_abb %in% c("US", "DC", "AL", "HI", "AK", "FL", "NV", "SD", "TX", "WA", "WY")) %>% 
+	pdata.frame(index("state_abb", "year"))
+
+# df_reg_plm_PIT %>% filter(is.na(RGSP_ext), year == 2013)
+
+
+# No breaking point at 1999
+df_reg_plm_PIT %>% 
+	filter(year %in% 1978:2015) %>% 
+	plm(tax_indivIncome_real_state ~ RGSP_ext, data =., model = "within") %>% 
+	summary
+	
+df_reg_plm_PIT %>% 
+	filter(year %in% 1978:2015) %>% 
+	plm(tax_indivIncome_real_state ~ RGSP_ext + LCapStock_TRI, data =., model = "within") %>% 
+	summary
+
+
+# breaking point at 1999
+df_reg_plm_PIT %>%   # GSP only
+	filter(year %in% 1978:2015) %>% 
+	mutate(RGSP = RGSP_ext) %>% 
+	plm(tax_indivIncome_real_state ~ RGSP + RGSP:after99, data =., model = "within") %>% 
+	summary
+
+df_reg_plm_PIT %>%   # break for GSP and sp500
+	filter(year %in% 1978:2015) %>% 
+	mutate(RGSP = RGSP_ext) %>% 
+	plm(tax_indivIncome_real_state ~ RGSP + RGSP:after99 + LCapStock_TRI + LCapStock_TRI:after99, data =., model = "within") %>% 
+	summary
+
+df_reg_plm_PIT %>%  # break for sp500 only 
+	filter(year %in% 1988:2015) %>% 
+	#mutate(RGSP = RGSP_ext) %>% 
+	plm(tax_indivIncome_real_state ~ RGSP + LCapStock_TRI + LCapStock_TRI:after99, data =., model = "within") %>% 
+	summary
+
+
+# Estimation for states separately
+df_reg_plm_PIT %>% 
+	filter(year %in% 1978:2015) %>% 
+	pvcm(tax_indivIncome_real_state ~ RGSP_ext + LCapStock_TRI + LCapStock_TRI:after99, data =., model = "within") 
+
+
+# Pooling test
+df_reg_plm_PIT %>% 
+	filter(year %in% 1978:2015) %>% 
+	mutate(RGSP = RGSP_ext) %>%
+  pooltest(tax_indivIncome_real_state ~ RGSP + LCapStock_TRI + LCapStock_TRI:after99, data =., model = "within")
+# Cannot reject the H0 (poolable)
+# However, when estimated separately, the estimates vary greatly across states
+
+
+# Hausman test
+gw <- 
+  df_reg_plm_PIT %>% 
+	filter(year %in% 1978:2015) %>% 
+	mutate(RGSP = RGSP_ext) %>%
+	plm(tax_indivIncome_real_state ~ RGSP_ext + LCapStock_TRI + LCapStock_TRI:after99, data =., model = "within")
+
+gr <- 
+	df_reg_plm_PIT %>% 
+	filter(year %in% 1978:2015) %>% 
+	mutate(RGSP = RGSP_ext) %>%
+	plm(tax_indivIncome_real_state ~ RGSP_ext + LCapStock_TRI + LCapStock_TRI:after99, data =., model = "random")
+
+phtest(gw, gr) # cannot reject H0 that both are consistent (fixed effect prefered.
+
+
+
+
+#*******************************************************************************
+#       Regression analysis panel: sales             ####
+#*******************************************************************************
+# Notes
+ # Poolability rejected, FE preferred
+ # dummary after 1999 insignificant
+ # Elasticity estimated by FE is around 0.77. This is even slightly higher than the FE estimate of the elasticity of PIT
+ # Elasticity of select sales tax (FE) is 0.45
+
+# Continent states only, excluding states with no general sales
+df_reg_plm_sales <-  df_reg_temp %>% 
+	filter(!state_abb %in% c("US", "DC", "AL", "AK", "HI", "DE", "MT", "NH", "OR")) %>% 
+	pdata.frame(index("state_abb", "year"))
+
+#df_reg_plm_sales_gen %>% filter(is.na(tax_sales_gen_real_state), year == 2013)
+
+
+# No breaking point at 1999
+df_reg_plm_sales_gen %>% 
+	filter(year %in% 1978:2015) %>% 
+	plm(tax_sales_gen_real_state ~ RGSP_ext, data =., model = "within") %>% 
+	summary
+
+df_reg_plm_sales_gen %>% 
+	filter(year %in% 1978:2015) %>% 
+	plm(tax_sales_gen_real_state ~ RGSP_ext + RGSP_ext:after99, data =., model = "within") %>% 
+	summary 
+  # dummy after99 not significant
+
+df_reg_plm_sales_gen %>% 
+	filter(year %in% 1978:2015) %>% 
+	plm(tax_sales_select_real_state ~ RGSP_ext, data =., model = "within") %>% 
+	summary
+
+
+
+
+# Estimation for states separately
+df_reg_plm_sales %>% 
+	filter(year %in% 1978:2015) %>% 
+	pvcm(tax_sales_gen_real_state ~ RGSP_ext , data =., model = "within") %>% 
+	summary
+
+
+# Pooling test
+df_reg_plm_sales %>% 
+	filter(year %in% 1978:2015) %>% 
+	pooltest(tax_sales_gen_real_state~ RGSP_ext, data =., model = "within")
+# Poolability is rejected
+
+
+
+# Hausman test
+gw <- 
+	df_reg_plm_sales %>% 
+	filter(year %in% 1978:2015) %>% 
+	mutate(RGSP = RGSP_ext) %>%
+	plm(tax_sales_gen_real_state ~ RGSP_ext, data =., model = "within")
+
+gr <- 
+	df_reg_plm_sales %>% 
+	filter(year %in% 1978:2015) %>% 
+	mutate(RGSP = RGSP_ext) %>%
+	plm(tax_sales_gen_real_state ~ RGSP_ext, data =., model = "random")
+
+phtest(gw, gr) # cannot reject H0 that both are consistent at 5% level (fixed effect prefered).
+               # but p-value is only 0.05
+
+
+#*******************************************************************************
+#       Regression analysis panel: other             ####
+#*******************************************************************************
+# Notes
+# Poolability rejected, FE preferred
+# dummary after 1999 insignificant
+# Elasticity estimated by FE is around 0.77. This is even slightly higher than the FE estimate of the elasticity of PIT
+# Elasticity of select sales tax (FE) is 0.45
+
+# Continent states only, excluding states with no general sales
+df_reg_plm_other <-  df_reg_temp %>% 
+	filter(!state_abb %in% c("US", "DC")) %>% 
+	pdata.frame(index("state_abb", "year"))
+
+# df_reg_plm_other %>% filter(is.na(tax_nonPITsalestot_real_state), year == 2013)
+
+
+# No breaking point at 1999
+df_reg_plm_other %>% 
+	filter(year %in% 1978:2015) %>% 
+	plm(tax_nonPITsalestot_real_state ~ RGSP_ext, data =., model = "within") %>% 
+	summary # 0.91
+
+df_reg_plm_other %>% 
+	filter(year %in% 1978:2015) %>% 
+	plm(tax_nonPITsalestot_real_state ~ RGSP_ext + RGSP_ext:after99, data =., model = "within") %>% 
+	summary 
+# dummy after99 significant, would double elasticity 
+
+
+
+
+# Estimation for states separately
+df_reg_plm_other %>% 
+	filter(year %in% 1978:2015) %>% 
+	pvcm(tax_nonPITsalestot_real_state ~ RGSP_ext , data =., model = "within") %>% 
+	summary
+
+
+# Pooling test
+df_reg_plm_other %>% 
+	filter(year %in% 1978:2015) %>% 
+	pooltest(tax_nonPITsalestot_real_state~ RGSP_ext, data =., model = "within")
+# Poolability cannot be rejected
+
+
+
+# Hausman test
+gw <- 
+	df_reg_plm_other %>% 
+	filter(year %in% 1978:2015) %>% 
+	mutate(RGSP = RGSP_ext) %>%
+	plm(tax_nonPITsalestot_real_state ~ RGSP_ext, data =., model = "within")
+
+gr <- 
+	df_reg_plm_other %>% 
+	filter(year %in% 1978:2015) %>% 
+	mutate(RGSP = RGSP_ext) %>%
+	plm(tax_nonPITsalestot_real_state ~ RGSP_ext, data =., model = "random")
+
+phtest(gw, gr) # cannot reject H0 that both are consistent (fixed effect prefered).
+
+
+
+
+
+
+
+
+#*******************************************************************************
+#                                Saving outputs                             ####
+#*******************************************************************************
+
+ggsave(paste0(dir_fig_out, "fig_returnCapGains.png"), fig_returnCapGains, width = 10*0.8, height = 5*0.8)
+ggsave(paste0(dir_fig_out, "fig_captainsTax.png"),    fig_captainsTax,    width = 10*0.8, height = 5*0.8)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

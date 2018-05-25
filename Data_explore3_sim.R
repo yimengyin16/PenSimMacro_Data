@@ -80,6 +80,43 @@ recessionPeriods <-
 				 trough = trough - 1/4)
 
 
+RIG.blue  <- "#003598"
+RIG.red   <- "#A50021"
+RIG.green <- "#009900"
+RIG.yellow <- "#FFFF66"
+RIG.purple <- "#9966FF"
+RIG.yellow.dark <- "#ffc829"
+RIG.orange <- "#fc9272"
+
+demo.color6 <- c(RIG.red,
+								 RIG.orange,
+								 RIG.purple,
+								 RIG.green ,
+								 RIG.blue,
+								 RIG.yellow.dark)
+
+
+RIG.theme <- function() {
+	theme(
+		panel.grid.major.x = element_blank(),
+		panel.grid.minor.x = element_blank(),
+		panel.grid.minor.y = element_blank(),
+		panel.grid.major.y = element_line(size = 0.5, color = "gray80"),
+		plot.title = element_text(hjust = 0.5),
+		plot.subtitle = element_text(hjust = 0.5),
+		plot.caption = element_text(hjust = 0, size = 9)
+	)
+}
+
+RIG.themeLite <- function() {
+	theme(
+		plot.title = element_text(hjust = 0.5),
+		plot.subtitle = element_text(hjust = 0.5),
+		plot.caption = element_text(hjust = 0, size = 9)
+	)
+}
+
+
 #**********************************************************************
 #                     Loading Data                                 ####
 #**********************************************************************

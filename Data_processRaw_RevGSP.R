@@ -45,6 +45,7 @@ load(paste0(dir_data_raw, "dataRaw_RevGSP.RData"))
 
 df_GSP_FRED
 df_RGSP_BEA
+df_NGSP_BEA
 Rev_urban_tot_nom
 Rev_urban_tot_real
 
@@ -67,6 +68,7 @@ Rev_urban_tot_real1
 
 df_RevGSP <- 
 df_RGSP_BEA %>% 
+	left_join(df_NGSP_BEA) %>% 
 	left_join(df_GSP_FRED %>% select(-RGSP)) %>% 
 	left_join(Rev_urban_tot_nom1) %>% 
 	left_join(Rev_urban_tot_real1)
@@ -112,6 +114,7 @@ df_RevGSP
 #**********************************************************************
 
 save(df_RevGSP, 
+		 df_us_states,
 		 file =  paste0(dir_data_out, "Data_RevGSP.RData"))
 
 

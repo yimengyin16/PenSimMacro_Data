@@ -5,7 +5,19 @@
 #                          Notes                                   ####
 #**********************************************************************
 
-# Relationships to examine:
+
+# What to model:
+# 1. GSP growth and state total tax revenue growth
+# 2. GSP growth and personal income tax growth
+# 3. GSP growth and general sales tax growth
+# 4. GSP grwoth and non-PIT-general sales tax growth: who cyclical it is
+# 5. Construct stylized facts 
+
+
+
+
+
+# Other relationships to examine:
   # 1. GSP growth and total own soure revenue growth,
   # 2. GSP growth and total tax revenue growth
   # 3. GSP growth and personal income tax growth
@@ -15,6 +27,10 @@
   # 7. GSP growth and growth of total tax revenue minus PIT and sales
 
   # 8. national GDP growth and GSP growth
+
+
+
+
 
 
 # Notes on real and nominal variables
@@ -251,7 +267,7 @@ df_dl_nominal <-
 #  1. Revenue structure: General own source revenue and total tax revneu    ####
 #*******************************************************************************
 
-# Qustion 1: Comparing own source revenue and Tax revenue
+# Question 1: Comparing own source revenue and Tax revenue
  # Variables: rev_gen_ownSrc_nom_XX, tax_tot_nom_XX
 
 df <- 
@@ -271,12 +287,17 @@ df <-
 				 tax_pct_local = 100 * tax_tot_nom_local / rev_gen_ownSrc_nom_local)
 
 
+# National level: tax as % of general own-source reveneu. 
 df_US <- 
 	df %>%  
 	filter(state_abb %in% "US") %>% 
 	select(state_abb, year, 
 				 tax_pct_SL, tax_pct_state, tax_pct_local)
 
+df_US %>% filter(year %in% c(1977, 1990, 2000, 2010, 2015))
+
+
+# tax as % of general own-source revenue: quantiles across states, all years.
 df_pct <- 
 df %>%
 	group_by(year) %>% 
@@ -300,22 +321,21 @@ df %>%
 		tax_pct_local_p90 = quantile(tax_pct_local, 0.90, na.rm = T)
 	)
 
-
-df_US %>% filter(year %in% c(1977, 1990, 2000, 2010, 2015))
-
+# tax as % of general own-source revenue: ordered from high to low, for year 2015
 df_arrange <- 
   df %>% select(state_abb, year, tax_pct_SL, tax_pct_state, tax_pct_local) %>% 
     filter(year  == 2015) %>% 
     arrange(tax_pct_SL)
+df_arrange
 
- 
+# tax as % of general own-source revenue: a single state
 df %>% select(state_abb, year, tax_pct_SL, tax_pct_state, tax_pct_local) %>% 
 	filter(state_abb == "AK") 
 
 ## Observations:
  # 1. The share of tax revnue in general own source revenue has been decreasing over the past 40 years. 
  #    For the national total of state and local, the share of tax decreased from about 80% to 70%. 
- #    In 2015, tax accounts for a higher share for state revenue (73%) than for local gov revenue (65%)
+ #    In 2015, tax as a % of state revenue (73%) is higher than tax as % for local revenue (65%). 
  # 2. For the total state and local revenue, the share of tax revenue in general own-source revenue generally ranges from  
  #    60% ~ 80%. 
  # 3. Tax revenue in AK accouts for a very small share of own source revenue (35% in 2015), especially at the state level (20% in 2015). 
@@ -329,7 +349,7 @@ df %>% select(state_abb, year, tax_pct_SL, tax_pct_state, tax_pct_local) %>%
 #  2. Revenue structure: share of income tax, sales tax, and property tax   ####
 #*******************************************************************************
 
-## State level
+## Structure of state tax revenue
 
 df_state <- 
 df_RevGSP %>% 
@@ -337,27 +357,180 @@ df_RevGSP %>%
 	select(state_abb, year, 
 				 tax_tot_nom_state, 
 				 tax_indivIncome_nom_state,
-				 tax_sales_tot_nom_state,
+				 tax_sales_gen_nom_state,
          tax_property_nom_state,
          tax_corpIncome_nom_state) %>% 
 	mutate(indivIncome_pct = 100 * tax_indivIncome_nom_state/tax_tot_nom_state,
-				 sales_pct       = 100 * tax_sales_tot_nom_state/tax_tot_nom_state,
+				 sales_pct       = 100 * tax_sales_gen_nom_state/tax_tot_nom_state,
 				 property_pct    = 100 * tax_property_nom_state/tax_tot_nom_state,
-				 corpIncome      = 100 * tax_corpIncome_nom_state/tax_tot_nom_state) %>% 
+				 corpIncome_pct  = 100 * tax_corpIncome_nom_state/tax_tot_nom_state,
+				 PITsales_pct    = indivIncome_pct + sales_pct) %>% 
   select(state_abb, year,
   			 indivIncome_pct,
   			 sales_pct,
   			 property_pct,
-  			 corpIncome)
+  			 corpIncome_pct,
+  			 PITsales_pct)
 
 
-## Trend sales 
+
+
+## for US and specific states 
 df_state %>% 
 	filter(state_abb %in% "US")
-# The share of sales tax is quite stable, ~50%
-# The share of personal income taxes has increased by half, from 25% in 1977 to 37% in 2015 
-# The share of property tax is around 1.5%~2.5%. 
-# The share of corp income tax decreased from 9% to 5%
+
+# For US aggregate:
+  # The share of sales tax is quite stable, ~50%
+  # The share of personal income taxes has increased by half, from 25% in 1977 to 37% in 2015 
+  # The share of property tax is around 1.5%~2.5%. 
+  # The share of corp income tax decreased from 9% to 5%
+
+## Sales+PIT as a % of total tax revenue.
+df_state %>% 
+	filter(year == 2015) %>% 
+	arrange(desc(PITsales_pct))
+
+# Sales + PIT accounts for 70%+ of tax revenue (most above 80%), 
+# States with sales + PIT less than 70% of tax rev are: AK(30%), WY(42%), NH(43%), ND(43%), DE(47%), VT(57%), MT(63%)
+
+
+
+# Year 2015: ordered by share of individual income tax
+df_state %>% 
+	filter(year == 2015) %>% 
+	arrange(desc(indivIncome_pct))
+
+# Top Five in 2015:       OR(69%), VA(58%), NY(56%), MA(54%), CA(52%)
+# states with % PIT < 5%: NH, TN, AK(0), FL, NV, SD, TX WA, WY 
+ 
+
+# Year 2015: ordered by share of sales tax
+df_state %>% 
+	filter(year == 2015) %>% 
+	arrange(desc(sales_pct))
+
+# Top five in 2015: TX(86.5%), SD(82%), FL(82%), NV(80%), WA(79%)
+# Lowest five in 2015: OR(14%), DE(14%), MT(21%), AK(30%), NY(31%)   [NH 39%, why]
+
+# Five states do not have statewide sales taxes: Alaska, Delaware, Montana, New Hampshire, and Oregon. 
+# Of these, Alaska and Montana allow localities to charge local sales taxes.
+
+
+## Plotting % of sales against % of PIT
+df_state %>% 
+	filter(year == 2015, !is.na(state_abb)) %>% 
+	ggplot(aes(x = indivIncome_pct, y = sales_pct, label = state_abb)) + 
+	geom_point() +
+	geom_text(nudge_x = 1, size = 2)
+
+
+
+
+
+#*******************************************************************************
+#  3. How do tax revenues change over time                                  ####
+#     and how are they affected economic conditions                         
+#*******************************************************************************
+
+# National level, examine how total tax revenue, sales tax revenue, and income tax (state level)
+# revenue change over time, and how they are compared against economic conditions
+
+df_RevGSP %<>%  
+	left_join(df_dataAll_y %>%
+							select(year, gdp_g = GDP_growth_FRED))
+
+
+# National level: GDP growth (real), state PIT, and state sales tax (nominal)
+df_RevGSP %>%
+	select(state_abb, year,  
+				 gdp_g,
+				 tax_indivIncome_nom_state, 
+				 tax_sales_gen_nom_state) %>%
+	filter(state_abb == "US", year %in% 1977:2015) %>% 
+	mutate_at(vars(-state_abb, -year, -gdp_g), funs(100 * log(./lag(.)))) %>% 
+	gather(var, value, -state_abb, -year) %>% 
+	ggplot(aes(x = year, y = value, color = var)) + theme_bw() + 
+	geom_line() + 
+	geom_hline(yintercept = 0, linetype = 2) +
+	scale_color_manual(values = c("darkgray", "green", "blue"))
+
+# Observations:
+  # State PIT growth is more volatile than sales tax
+  # Tax income, especially income tax, has become more responsive to business cycle 
+  # The correlation between tax revenue and GDP growth are more prominent in the two recent recessions. 
+  
+  # Questions is: will the high correlatoin last? Pew report uses 1995-2015 data (only uses NAICS GSP) to estimate the
+  # the correlation, which only capture the high correlation period.              
+
+
+# State level: GDP growth (real), state PIT, and state sales tax (nominal)
+state_select <- "CA"
+df_RevGSP %>%
+	select(state_abb, year,  
+				 gdp_g,
+				 tax_indivIncome_nom_state, 
+				 tax_sales_gen_nom_state) %>%
+	filter(state_abb == state_select, year %in% 1977:2015) %>% 
+	mutate_at(vars(-state_abb, -year, -gdp_g), funs(100 * log(./lag(.)))) %>% 
+	gather(var, value, -state_abb, -year) %>% 
+	ggplot(aes(x = year, y = value, color = var)) + theme_bw() + 
+	geom_line() + 
+	geom_hline(yintercept = 0, linetype = 2) +
+	scale_color_manual(values = c("darkgray", "green", "blue"))
+
+
+
+# GDP growth (real), real estate and corp income tax (nominal) 
+df_RevGSP %>%
+	select(state_abb, year,  
+				 gdp_g,
+				 tax_property_nom_SL, 
+				 tax_corpIncome_nom_SL) %>%
+	filter(state_abb == "US", year %in% 1977:2015) %>% 
+	mutate_at(vars(-state_abb, -year, -gdp_g), funs(100 * log(./lag(.)))) %>% 
+	gather(var, value, -state_abb, -year) %>% 
+	ggplot(aes(x = year, y = value, color = var)) + theme_bw() + 
+	geom_line() + 
+	geom_hline(yintercept = 0, linetype = 2) +
+	scale_color_manual(values = c("darkgray", "green", "blue"))
+
+# Corp income tax are volatile, but its share is small
+# The correlation between property tax and gdp is weak.
+
+
+
+
+
+
+df_RevGSP %>%
+	select(state_abb, year,
+				 gdp_g,
+				 rev_gen_ownSrc_nom_state,
+				 tax_tot_nom_state) %>%
+	mutate(ownSrc_nontax = rev_gen_ownSrc_nom_state - tax_tot_nom_state) %>% 
+	filter(state_abb == "US", year %in% 1977:2015) %>% 
+	mutate_at(vars(-state_abb, -year, -gdp_g), funs(100 * log(./lag(.)))) %>% 
+	gather(var, value, -state_abb, -year) %>% 
+	ggplot(aes(x = year, y = value, color = var)) + theme_bw() + 
+	geom_line() + 
+	geom_hline(yintercept = 0, linetype = 2) 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
