@@ -875,6 +875,7 @@ df_dataAll_y %>%
 	select(year, month, yearMon, 
 				 GDP_FRED,        # National GDP from FRED
 				 CPIU_NA_FRED,    # CPI, urban resident, not seasonally adjusted. FRED
+				 GDPCTPI_FRED,    # GDP chain-type price index
 				 Inflation_Index, # SBBI, inflation index 
 				 LCapStock_TRI,   # SBBI, large cap stock total return index (SP500 total return index)
 				 LCapStock_CAI,   # SBBI, large cap stock capital appreciation index (SP500 price index)
@@ -938,7 +939,6 @@ df_real_reg %>%
 
 ## getting real variables 
 
-
 df_real_reg %<>% 
 	mutate(LCapStock_TRI_real = LCapStock_TRI - Inflation_Index,
 				 LCapStock_CAI_real = LCapStock_CAI- Inflation_Index,
@@ -949,8 +949,26 @@ df_real_reg %<>%
 				 TBill_return_nyu_real  = TBill_return_nyu - Inflation_Index, 
 				 TBond_return_nyu_real  = TBond_return_nyu - Inflation_Index,
 				 capgains_chg_real =  capgains_chg - Inflation_Index,
-				 tax_gains_chg_real = tax_gains_chg -Inflation_Index
+				 tax_gains_chg_real = tax_gains_chg -Inflation_Index,
+				 
+				 LCapStock_TRI_real2 = LCapStock_TRI - GDPCTPI_FRED,
+				 LCapStock_CAI_real2 = LCapStock_CAI- GDPCTPI_FRED,
+				 CBond_TRI_real2     = CBond_TRI - GDPCTPI_FRED,    
+				 LTGBond_TRI_real2   = LTGBond_TRI - GDPCTPI_FRED,  
+				 MTGBond_TRI_real2   = MTGBond_TRI - GDPCTPI_FRED,
+				 SP500_return_nyu_real2  = SP500_return_nyu - GDPCTPI_FRED, 
+				 TBill_return_nyu_real2  = TBill_return_nyu - GDPCTPI_FRED, 
+				 TBond_return_nyu_real2  = TBond_return_nyu - GDPCTPI_FRED,
+				 capgains_chg_real2 =  capgains_chg - GDPCTPI_FRED,
+				 tax_gains_chg_real2 = tax_gains_chg -GDPCTPI_FRED
+				 
 	)
+
+df_real_reg %>% 
+	filter(state_abb == "US") %>% 
+	select(year, Inflation_Index, GDPCTPI_FRED) %>% 
+	gather(var, value, -year, -state_abb) %>% 
+	qplot(x = year, y = value, color = var, data = ., geom = c("line","point"))
 
 #*******************************************************************************
 #     Regression analysis: data prep 2 asset return and PIT                 ####
