@@ -29,10 +29,6 @@
   # 8. national GDP growth and GSP growth
 
 
-
-
-
-
 # Notes on real and nominal variables
 #  - results for nominal variables for 1995-2015 can be compared with Pew results
 #  - GDP/GSP are modeled in real terms in the macro model, so the GDP-revenue relationship should be

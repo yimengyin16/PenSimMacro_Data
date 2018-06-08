@@ -140,6 +140,9 @@ df4 <-
 #**********************************************************************
 #                Construct quarterly and annual data               ####
 #**********************************************************************
+
+
+
 df_dataAll_q <- df_dataAll %>% filter(month %in% c(3, 6, 9, 12))
 df_dataAll_y <- df_dataAll %>% filter(month %in% 6)
 

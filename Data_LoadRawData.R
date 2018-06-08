@@ -61,6 +61,7 @@ Quandl.api_key("rsakY2-RD8pa1JNBk9sd")
 
 FRED_vars <- c(
   "GDPC1",           # Quarterly, Seasonally adjusted GDP level, billion
+  
   "A191RL1Q225SBEA", # Quarterly, seasonally adjusted GDP growth, annual rate
   "TB3MS",           # 3-Month Treasury-bill: secondary market rate, monthly
   "GS2",             # 2-Year  Treasury constant maturity rate
@@ -71,6 +72,11 @@ FRED_vars <- c(
   "CPIAUCSL",        # CPI-U, seasonally adjusted
   "CPIAUCNS",        # CPI_U, not seasonally adjusted
   "CPILFESL",        # core CPI: CPI-U less food and energy, seasonally adjusted 
+  
+  "GDPDEF",          # GDP implicit price deflator,Quarterly, seasonally adjusted, 2009 = 100
+  "GDPCTPI",         # GDP Chain-type price index, Quarterly, seasonally adjusted, 2009 = 100
+  
+  #"B191RA3Q086SBEA", # GDP chain-type quantity index (discontinuted), quarterly, seasonally adjusted, 2009 = 100
   
   #"AAA",            # Moody's Seasoned Aaa Corporate Bond Yield, monthly not seasonally adjusted
   
@@ -95,9 +101,21 @@ df_FRED %<>%
 				 CPIU_SA_FRED  = CPIAUCSL,
 				 CPIU_NA_FRED  = CPIAUCNS,
 				 CPIc_SA_FRED  = CPILFESL,
+				 
+				 GDPdeflator_FRED = GDPDEF,
+				 GDPCTPI_FRED = GDPCTPI,
+				 #GDPCTQI_FRED = B191RA3Q086SBEA,
+				 
 				 unrate_SA_FRED= UNRATE       
-	)
+	) 
+# %>% mutate(GDPdeflator_FRED = na.locf(GDPdeflator_FRED, na.rm = FALSE),  .
+# 				 GDPCTPI_FRED     = na.locf(GDPCTPI_FRED, na.rm = FALSE),
+				
 names(df_FRED)	
+
+df_FRED
+
+
 
 # data through quantmod
 macroData <- new.env()
@@ -123,7 +141,9 @@ tail(df_FRED)
 # as.Date(x)
 # as.yearmon("2010-1")
 
-#
+
+# Quarterly GDP and price indices are given in month 1, 4, 7, 10. 
+# Fill other month with value in the first month of the quarter
 
 df_FRED  %<>% group_by(year) %>% 
 	mutate(
@@ -138,6 +158,20 @@ df_FRED  %<>% group_by(year) %>%
 			month %in% 4:6   ~ GDP_growth_FRED[4],
 			month %in% 7:9   ~ GDP_growth_FRED[7],
 			month %in% 10:12 ~ GDP_growth_FRED[10]
+	),
+	
+	  GDPdeflator_FRED = case_when(
+		month %in% 1:3   ~ GDPdeflator_FRED[1],
+		month %in% 4:6   ~ GDPdeflator_FRED[4],
+		month %in% 7:9   ~ GDPdeflator_FRED[7],
+		month %in% 10:12 ~ GDPdeflator_FRED[10]
+	),
+	
+	 GDPCTPI_FRED = case_when(
+		month %in% 1:3   ~ GDPCTPI_FRED[1],
+		month %in% 4:6   ~ GDPCTPI_FRED[4],
+		month %in% 7:9   ~ GDPCTPI_FRED[7],
+		month %in% 10:12 ~ GDPCTPI_FRED[10]
 	)
 )
 
