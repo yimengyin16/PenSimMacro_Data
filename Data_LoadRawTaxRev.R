@@ -357,7 +357,7 @@ save(Rev_urban_tot_nom,
 		 file = paste0(dir_data_raw, "dataRaw_RevGSP.RData"))
 
 
-
+df_dataAll_y %>% head()
 
 
 

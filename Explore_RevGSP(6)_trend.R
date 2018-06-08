@@ -339,7 +339,7 @@ df_temp %>% #gen sales
 # compare cycles
 
 # log cycle
-df_temp %>%
+df_temp %>% 
 	select(year, GDP_logcycle_hp, PIT_logcycle_hp, salesgen_logcycle_hp) %>% 
 	gather(var, value, -year) %>% 
 	qplot(x = year, y = value, color = var, data = ., geom = c("line", "point")) + 
@@ -351,6 +351,7 @@ df_temp %>%
 	gather(var, value, -year) %>% 
 	qplot(x = year, y = value, color = var, data = ., geom = c("line", "point")) + 
 	geom_hline(yintercept = 1, linetype = 2)
+
 
 
 # Trends
