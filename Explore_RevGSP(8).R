@@ -1100,7 +1100,8 @@ df_reg_US <-
 				 # Lag_dlLCapStock_TRI_real2 = lag(dlLCapStock_TRI_real2),
 				 # Lagcapgains_chg_real  = lag(capgains_chg_real),
 				 # LagLCapStock_TRI_real = lag(LCapStock_TRI_real),
-				 after99 = ifelse(year > 2001, TRUE, FALSE),
+				 after99 = ifelse(year > 1999, TRUE, FALSE),
+				 after97 = ifelse(year > 1997, TRUE, FALSE),
 				 after95 = ifelse(year > 1995, TRUE, FALSE),
 				 after91 = ifelse(year > 1991, TRUE, FALSE),
 				 recession = ifelse(year %in% c(2001:2002, 2008:2010), TRUE, FALSE),
@@ -1133,10 +1134,10 @@ df_reg_US%>%
 	lm(PIT_dlogcycle ~ GDP_dlogcycle, data = .) 
 mod_PIT_GSP %>% summary
 
-mod_PIT_GSPd99 <- 
+mod_PIT_GSPd97 <- 
 df_reg_US %>% 
-	lm(PIT_dlogcycle ~ GDP_dlogcycle + GDP_dlogcycle:after99, data = .) 
-mod_PIT_GSPd99 %>% summary
+	lm(PIT_dlogcycle ~ GDP_dlogcycle + GDP_dlogcycle:after97, data = .) 
+mod_PIT_GSPd97 %>% summary
 # after 99/95/91 is significant. pre-99 is sig at 10%, pre95/91 not significant
 
 
@@ -1153,14 +1154,14 @@ mod_PIT_GSP.Lagstock_real %>% summary
  # with 99 dummy for GSP and stock return
 mod_PIT_GSPd99.Lagstockd99_real <- 
 	df_reg_US %>% 
-	lm(PIT_dlogcycle ~ GDP_dlogcycle + GDP_dlogcycle:after99 + LagstockIdx_dlogcycle + LagstockIdx_dlogcycle:after99, data =.)
+	lm(PIT_dlogcycle ~ GDP_dlogcycle + GDP_dlogcycle:after97 + LagstockIdx_dlogcycle + LagstockIdx_dlogcycle:after97, data =.)
 mod_PIT_GSPd99.Lagstockd99_real %>% summary
 # both GDP and stock are only sig after 99
 
 # with 99 dummy for stock return
 mod_PIT_GSP.Lagstockd99_real <- 
 	df_reg_US %>% 
-	lm(PIT_dlogcycle ~ GDP_dlogcycle + LagstockIdx_dlogcycle + LagstockIdx_dlogcycle:after99, data =.)
+	lm(PIT_dlogcycle ~ GDP_dlogcycle + LagstockIdx_dlogcycle + LagstockIdx_dlogcycle:after97, data =.)
 mod_PIT_GSP.Lagstockd99_real %>% summary
 
 
@@ -1174,15 +1175,52 @@ mod_PIT_GSP.Lagcapgain_real %>% summary
 
 mod_PIT_GSPd99.Lagcapgaind99_real <-
 	df_reg_US %>% 
-	lm(PIT_dlogcycle ~ GDP_dlogcycle + GDP_dlogcycle:after99 + Lagcapgains_dlogcycle:after99, data =.) 
+	lm(PIT_dlogcycle ~ GDP_dlogcycle + GDP_dlogcycle:after97 + Lagcapgains_dlogcycle + Lagcapgains_dlogcycle:after97, data =.) 
 mod_PIT_GSPd99.Lagcapgaind99_real %>% summary
 # GDP after 99 not significant
 
 
 mod_PIT_GSP.Lagcapgaind99_real <- 
 	df_reg_US %>% 
-	lm(PIT_dlogcycle ~ GDP_dlogcycle + Lagcapgains_dlogcycle:after99, data =.)
+	lm(PIT_dlogcycle ~ GDP_dlogcycle + Lagcapgains_dlogcycle + Lagcapgains_dlogcycle:after97, data =.)
 mod_PIT_GSP.Lagcapgaind99_real %>% summary
+
+
+
+# Quandt likelihood ratio test for structural breaks
+
+
+m1 <- 
+	df_reg_US %>% 
+	mutate(breakpoint = ifelse(year > 1999, TRUE, FALSE)) %>% 
+	lm(PIT_dlogcycle ~ GDP_dlogcycle + GDP_dlogcycle:breakpoint, data =.)
+summary(m1)
+# t-value are high in 1995-1999, 1996 is the highest, significant at 5% with central 70% sample, 
+# significant at 10% level for the central 30% sample (about 1991-2002)
+
+
+
+m1 <- 
+	df_reg_US %>% 
+	mutate(breakpoint = ifelse(year > 2000, TRUE, FALSE)) %>% 
+	lm(PIT_dlogcycle ~ GDP_dlogcycle + Lagcapgains_dlogcycle + Lagcapgains_dlogcycle:breakpoint, data =.)
+summary(m1)
+# t-value are high in 1995-1999, 1997 is the highest, significant at 5% with central 70% sample
+
+
+m2 <- 
+	df_reg_US %>% 
+	mutate(breakpoint = ifelse(year > 1997, TRUE, FALSE)) %>% 
+	lm(PIT_dlogcycle ~ GDP_dlogcycle + LagstockIdx_dlogcycle + LagstockIdx_dlogcycle:breakpoint, data =.)
+summary(m2)
+# t-value are high in 1995-1999, 1997 and 1999 are the highest (1999 slightly higher), significant at 5% with central 70% sample
+
+
+pi1 <- 14/38
+pi2 <- 15/38
+38*0.35
+
+
 
 
 
@@ -1376,6 +1414,15 @@ mod_salesgen_GSPrec %>% summary
  # use separate dummies for 2001 and 2008 recessions, only 2008 recession is significant
 
 
+# Interaction between GDP and recessions
+mod_salesgen <- # with recession dummy
+	df_reg_US %>% filter(state_abb == "US", year >= 1985) %>% 
+	mutate(RGSP = GDP_FRED) %>%
+	lm(salesgen_dlogcycle ~ GDP_dlogcycle + recession_0103:GDP_dlogcycle +  recession_0810:GDP_dlogcycle, data = .) 
+mod_salesgen %>% summary
+# interaction terms are not significant
+
+
 
 
 
@@ -1389,53 +1436,38 @@ mod_salesgen_GSP <-
 mod_salesgen_GSP %>% summary
 
 
+# mod_salesgen_GSPrec85 <- # with recession dummy
+# 	df_reg_US %>% filter(state_abb == "US", year >= 1985) %>% 
+# 	mutate(RGSP = GDP_FRED) %>%
+# 	lm(salesgen_dlogcycle ~ GDP_dlogcycle + recession_recent2, data = .) 
+# mod_salesgen_GSPrec85 %>% summary
+# 
+# mod_salesgen_GSPrec95 <- # with recession dummy
+# 	df_reg_US %>% filter(state_abb == "US", year >= 1995) %>% 
+# 	mutate(RGSP = GDP_FRED) %>%
+# 	lm(salesgen_dlogcycle ~ GDP_dlogcycle + recession_recent2, data = .) 
+# mod_salesgen_GSPrec95 %>% summary
+# 
+# mod_salesgen_GSPrecAll85 <- # with recession dummy
+# 	df_reg_US %>% filter(state_abb == "US", year >= 1985) %>% 
+# 	mutate(RGSP = GDP_FRED) %>%
+# 	lm(salesgen_dlogcycle ~ GDP_dlogcycle + recession_all2, data = .) 
+# mod_salesgen_GSPrecAll85 %>% summary
+
+
 mod_salesgen_GSPrec85 <- # with recession dummy
 	df_reg_US %>% filter(state_abb == "US", year >= 1985) %>% 
 	mutate(RGSP = GDP_FRED) %>%
-	lm(salesgen_dlogcycle ~ GDP_dlogcycle + recession_recent2, data = .) 
+	lm(salesgen_dlogcycle ~ GDP_dlogcycle + recession_0103 + recession_0810 , data = .) 
 mod_salesgen_GSPrec85 %>% summary
+
 
 mod_salesgen_GSPrec95 <- # with recession dummy
 	df_reg_US %>% filter(state_abb == "US", year >= 1995) %>% 
 	mutate(RGSP = GDP_FRED) %>%
-	lm(salesgen_dlogcycle ~ GDP_dlogcycle + recession_recent2, data = .) 
-mod_salesgen_GSPrec95 %>% summary
-
-
-
-mod_salesgen_GSPrecAll85 <- # with recession dummy
-	df_reg_US %>% filter(state_abb == "US", year >= 1985) %>% 
-	mutate(RGSP = GDP_FRED) %>%
-	lm(salesgen_dlogcycle ~ GDP_dlogcycle + recession_all2, data = .) 
-mod_salesgen_GSPrecAll85 %>% summary
-
-mod_salesgen_GSPrecAll95 <- # with recession dummy
-	df_reg_US %>% filter(state_abb == "US", year >= 1995) %>% 
-	mutate(RGSP = GDP_FRED) %>%
-	lm(salesgen_dlogcycle ~ GDP_dlogcycle + recession_all2, data = .) 
-mod_salesgen_GSPrecAll95 %>% summary
-
-
-
-
-mod_salesgen <- # with recession dummy
-	df_reg_US %>% filter(state_abb == "US", year >= 1985) %>% 
-	mutate(RGSP = GDP_FRED) %>%
-	lm(salesgen_dlogcycle ~ GDP_dlogcycle + recession_0103:GDP_dlogcycle +  recession_0810:GDP_dlogcycle, data = .) 
-mod_salesgen %>% summary
-# interaction terms are not significant
-
-mod_salesgen <- # with recession dummy
-	df_reg_US %>% filter(state_abb == "US", year >= 1985) %>% 
-	mutate(RGSP = GDP_FRED) %>%
 	lm(salesgen_dlogcycle ~ GDP_dlogcycle + recession_0103 + recession_0810 , data = .) 
-mod_salesgen %>% summary
-
+mod_salesgen_GSPrec95 %>% summary
 # 91 recession is not significant
-
-
-
-
 
 
 
@@ -1446,18 +1478,14 @@ Table_salesgen_new_param <-
 	bind_rows(
 		mod_salesgen_GSP             %>% tidy() %>% mutate(mod = "salesgen_GSP"),
 		mod_salesgen_GSPrec85        %>% tidy() %>% mutate(mod = "salesgen_GSPrec85"),
-		mod_salesgen_GSPrec95        %>% tidy() %>% mutate(mod = "salesgen_GSPrec95"),
-		mod_salesgen_GSPrecAll85     %>% tidy() %>% mutate(mod = "salesgen_GSPrecAll85"),
-		mod_salesgen_GSPrecAll95     %>% tidy() %>% mutate(mod = "salesgen_GSPrecAll95")
+		mod_salesgen_GSPrec95        %>% tidy() %>% mutate(mod = "salesgen_GSPrec95")
 	)
 
 Table_salesgen_new_glance <- 
 	bind_rows(
 		mod_salesgen_GSP             %>% glance() %>% mutate(mod = "salesgen_GSP"),
 		mod_salesgen_GSPrec85        %>% glance() %>% mutate(mod = "salesgen_GSPrec85"),
-		mod_salesgen_GSPrec95        %>% glance() %>% mutate(mod = "salesgen_GSPrec95"),
-		mod_salesgen_GSPrecAll85     %>% glance() %>% mutate(mod = "salesgen_GSPrecAll85"),
-		mod_salesgen_GSPrecAll95     %>% glance() %>% mutate(mod = "salesgen_GSPrecAll95")
+		mod_salesgen_GSPrec95        %>% glance() %>% mutate(mod = "salesgen_GSPrec95")
 	)
 
 write.xlsx2(Table_salesgen_new_param,  file = paste0("policyBrief_out/", "Table_regression_cycle_salesgen.xlsx"), sheet = "sales_param" )
@@ -1479,26 +1507,37 @@ mod_salesselect_GSP <-
 	lm(salessel_dlogcycle ~ GDP_dlogcycle, data = .) 
 mod_salesselect_GSP %>% summary
 
-
-mod_salesselect_GSPrec85 <- # with recession dummy
-	df_reg_US %>% filter(state_abb == "US", year >= 1985) %>% 
-	mutate(RGSP = GDP_FRED) %>%
-	lm(salessel_dlogcycle ~ GDP_dlogcycle + recession_recent2, data = .) 
+mod_salesselect_GSPrec85 <- 
+	df_reg_US %>% filter(state_abb == "US", year >=1985) %>% 
+	#mutate(RGSP = GDP_FRED) %>%
+	lm(salessel_dlogcycle ~ GDP_dlogcycle + recession_0103 + recession_0810, data = .) 
 mod_salesselect_GSPrec85 %>% summary
 
-mod_salesselect_GSPrec95 <- # with recession dummy
-	df_reg_US %>% filter(state_abb == "US", year >= 1995) %>% 
-	mutate(RGSP = GDP_FRED) %>%
-	lm(salessel_dlogcycle ~ GDP_dlogcycle + recession_recent2, data = .) 
+mod_salesselect_GSPrec95 <- 
+	df_reg_US %>% filter(state_abb == "US", year >=1995) %>% 
+	#mutate(RGSP = GDP_FRED) %>%
+	lm(salessel_dlogcycle ~ GDP_dlogcycle + recession_0103 + recession_0810, data = .) 
 mod_salesselect_GSPrec95 %>% summary
 
-
-
-mod_salesselect_GSPrecAll85 <- # with recession dummy
-	df_reg_US %>% filter(state_abb == "US", year >= 1985) %>% 
-	mutate(RGSP = GDP_FRED) %>%
-	lm(salessel_dlogcycle ~ GDP_dlogcycle + recession_all2, data = .) 
-mod_salesselect_GSPrecAll85 %>% summary
+# mod_salesselect_GSPrec85 <- # with recession dummy
+# 	df_reg_US %>% filter(state_abb == "US", year >= 1985) %>% 
+# 	mutate(RGSP = GDP_FRED) %>%
+# 	lm(salessel_dlogcycle ~ GDP_dlogcycle + recession_recent2, data = .) 
+# mod_salesselect_GSPrec85 %>% summary
+# 
+# mod_salesselect_GSPrec95 <- # with recession dummy
+# 	df_reg_US %>% filter(state_abb == "US", year >= 1995) %>% 
+# 	mutate(RGSP = GDP_FRED) %>%
+# 	lm(salessel_dlogcycle ~ GDP_dlogcycle + recession_recent2, data = .) 
+# mod_salesselect_GSPrec95 %>% summary
+# 
+# 
+# 
+# mod_salesselect_GSPrecAll85 <- # with recession dummy
+# 	df_reg_US %>% filter(state_abb == "US", year >= 1985) %>% 
+# 	mutate(RGSP = GDP_FRED) %>%
+# 	lm(salessel_dlogcycle ~ GDP_dlogcycle + recession_all2, data = .) 
+# mod_salesselect_GSPrecAll85 %>% summary
 
 
 
@@ -1508,16 +1547,16 @@ Table_salesselect_new_param <-
 	bind_rows(
 		mod_salesselect_GSP             %>% tidy() %>% mutate(mod = "salesselect_GSP"),
 		mod_salesselect_GSPrec85        %>% tidy() %>% mutate(mod = "salesselect_GSPrec85"),
-		mod_salesselect_GSPrec95        %>% tidy() %>% mutate(mod = "salesselect_GSPrec95"),
-		mod_salesselect_GSPrecAll85     %>% tidy() %>% mutate(mod = "salesselect_GSPrecAll85")
+		mod_salesselect_GSPrec95        %>% tidy() %>% mutate(mod = "salesselect_GSPrec95")
+		# mod_salesselect_GSPrecAll85     %>% tidy() %>% mutate(mod = "salesselect_GSPrecAll85")
 	)
 
 Table_salesselect_new_glance <- 
 	bind_rows(
 		mod_salesselect_GSP             %>% glance() %>% mutate(mod = "salesselect_GSP"),
 		mod_salesselect_GSPrec85        %>% glance() %>% mutate(mod = "salesselect_GSPrec85"),
-		mod_salesselect_GSPrec95        %>% glance() %>% mutate(mod = "salesselect_GSPrec95"),
-		mod_salesselect_GSPrecAll85     %>% glance() %>% mutate(mod = "salesselect_GSPrecAll85")
+		mod_salesselect_GSPrec95        %>% glance() %>% mutate(mod = "salesselect_GSPrec95")
+		# mod_salesselect_GSPrecAll85     %>% glance() %>% mutate(mod = "salesselect_GSPrecAll85")
 		
 	)
 

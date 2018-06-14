@@ -179,7 +179,7 @@ RIG.themeLite <- function() {
 
 
 #**********************************************************************
-#                       Loading Data                               ####
+#                       Loading Data  1                            ####
 #**********************************************************************
 # Loading saved data 
 load(paste0(dir_data_out, "data_RevGSP.RData"))
@@ -280,13 +280,109 @@ df_dlnom
 
 
 
+
+# Asset return data from SBBI and national GDP (FRED, check it against the aggregate GSP for all states)
+df_dataAll_y %>% names()
+
+df_SBBI_reg <- 
+	df_dataAll_y %>% 
+	select(year, month, yearMon, 
+				 GDP_FRED,        # National GDP from FRED
+				 CPIU_NA_FRED,    # CPI, urban resident, not seasonally adjusted. FRED
+				 Inflation_Index, # SBBI, inflation index 
+				 LCapStock_TRI,   # SBBI, large cap stock total return index (SP500 total return index)
+				 LCapStock_CAI,   # SBBI, large cap stock capital appreciation index (SP500 price index)
+				 CBond_TRI,       # SBBI, corp bond total return
+				 LTGBond_TRI,     # SBBI, long-term gov bond total return (20y?)
+				 MTGBond_TRI,     # SBBI, medium-term gov bond total return
+				 LTGBond_Yield    # SBBI, long-term gov bond yield
+	) %>%  
+	filter(year %in% 1977:2015) %>% 
+	mutate_at(vars(-year, -month, -yearMon, -LTGBond_Yield), funs(log(./lag(.)))) 
+
+
+
+
+
+
+# Asset return data from NYU Stern 
+df_assetReturn_nyu <- read_excel(paste0(dir_data_raw, "/histretSP_201801.xls"), sheet = "Returns by year", skip = 17)[,1:4]
+names(df_assetReturn_nyu) <- c("year", "SP500_return_nyu", "TBill_return_nyu", "TBond_return_nyu")
+df_assetReturn_nyu %<>% mutate(year = as.numeric(year)) %>% filter(year <= 2017)
+df_assetReturn_nyu
+
+
+# Captial gain / losses data for states
+# From Don
+# level in $billions
+rlzCapGains_nom <- read_excel(paste0(dir_data_raw, "/NationalCapitalGains_yy.xlsx"), sheet = "CapGains", range = c("A5:C67"))
+names(rlzCapGains_nom) <- c("year", "capgains", "capgains_chg")
+rlzCapGains_nom
+
+rlzCapGains_nom_rev <- read_excel(paste0(dir_data_raw, "/NationalCapitalGains_yy.xlsx"), sheet = "CapGains_rev", range = c("A8:E30"))[,-(2:3)]
+rlzCapGains_nom_rev
+
+
+df_real_reg <- 
+	df_dlRevGSP_reg %>% 
+	left_join(df_SBBI_reg) %>% 
+	left_join(df_assetReturn_nyu) %>% 
+	left_join(rlzCapGains_nom) %>% 
+	left_join(rlzCapGains_nom_rev)
+
+df_real_reg # all variables 1988-2015
+
+
+## Extending RGSP series by adjusting NGSP for inflation 
+
+df_GSPext <- df_dlnom %>% select(state_abb, year, NGSP) %>% 
+	left_join(df_SBBI_reg %>% select(year, Inflation_Index)) %>% 
+	mutate(RGSP_ext = NGSP/100 - Inflation_Index) %>% 
+	select(state_abb, year, RGSP_ext)
+
+df_real_reg %<>% left_join(df_GSPext) %>% 
+	mutate(RGSP_ext = ifelse(year < 1988, RGSP_ext, RGSP ))
+
+
+df_real_reg %>% 
+	select(state_abb, year, RGSP_ext, RGSP) %>% 
+	filter(state_abb == "US") %>% 
+	gather(var, value, -state_abb, -year) %>% 
+	qplot(x = year, y = value, color = var, data =.,  geom = c("line", "point"))
+
+## getting real variables 
+
+
+df_real_reg %<>% 
+	mutate(LCapStock_TRI_real = LCapStock_TRI - Inflation_Index,
+				 LCapStock_CAI_real = LCapStock_CAI- Inflation_Index,
+				 CBond_TRI_real     = CBond_TRI - Inflation_Index,    
+				 LTGBond_TRI_real   = LTGBond_TRI - Inflation_Index,  
+				 MTGBond_TRI_real   = MTGBond_TRI - Inflation_Index,
+				 SP500_return_nyu_real  = SP500_return_nyu - Inflation_Index, 
+				 TBill_return_nyu_real  = TBill_return_nyu - Inflation_Index, 
+				 TBond_return_nyu_real  = TBond_return_nyu - Inflation_Index,
+				 capgains_chg_real =  capgains_chg - Inflation_Index,
+				 tax_gains_chg_real = tax_gains_chg -Inflation_Index
+	)
+
+
+
+
 #**********************************************************************
-#       Descriptive analysis 1: structure of state tax revenue     ####
+#       Descriptive analysis 1: Decomposing data    ####
 #**********************************************************************
-df_temp <- 
+
+
+df_decomp <- 
 df_real %>% 
 	filter(state_abb == "US", year %in% 1977:2015) %>%  
-	select(year, state_abb, year, tax_indivIncome_real_state, tax_sales_gen_real_state, tax_sales_tot_real_state, tax_property_real_state, RGSPc) %>% 
+	select(year, state_abb,  
+				 tax_indivIncome_real_state, 
+				 tax_sales_gen_real_state, 
+				 tax_sales_tot_real_state, 
+				 tax_property_real_state, 
+				 RGSPc) %>% 
 	left_join(df_dataAll_y %>% select(year, GDP_FRED)) %>% 
 	mutate(GDP_FRED = GDP_FRED * 1e6,
          		  
@@ -295,12 +391,11 @@ df_real %>%
 				 GDP_logcycle_hp = hpfilter(log(GDP_FRED), freq = 100)$cycle,
 				 GDP_cycle_fct   = exp(GDP_logcycle_hp),    
 				 
-				 
 				 PIT_log = log(tax_indivIncome_real_state),
 				 PIT_logtrend_hp = hpfilter(log(tax_indivIncome_real_state), freq = 100)$trend,
 				 PIT_logcycle_hp = hpfilter(log(tax_indivIncome_real_state), freq = 100)$cycle,
 				 PIT_cycle_fct   = exp(PIT_logcycle_hp),
-				 
+
 				 salesgen_log         = log(tax_sales_gen_real_state),
 				 salesgen_logtrend_hp = hpfilter(log(tax_sales_gen_real_state), freq = 100)$trend,
 				 salesgen_logcycle_hp = hpfilter(log(tax_sales_gen_real_state), freq = 100)$cycle,
@@ -310,12 +405,10 @@ df_real %>%
 				 salestot_logtrend_hp = hpfilter(log(tax_sales_tot_real_state), freq = 100)$trend,
 				 salestot_logcycle_hp = hpfilter(log(tax_sales_tot_real_state), freq = 100)$cycle,
 				 salestot_cycle_fct   = exp(salestot_logcycle_hp),
-				 
-				 
+
 				 PIT_GDP_trend = exp(PIT_logtrend_hp - GDP_logtrend_hp),
 				 salesgen_GDP_trend = exp(salesgen_logtrend_hp - GDP_logtrend_hp),
 				 salestot_GDP_trend = exp(salestot_logtrend_hp - GDP_logtrend_hp)
-				 
 				 )
 
 
@@ -345,13 +438,13 @@ df_temp %>%
 	qplot(x = year, y = value, color = var, data = ., geom = c("line", "point")) + 
 	geom_hline(yintercept = 0, linetype = 2)
 
+
 # multiplicative cycle (exp of log cycle)
 df_temp %>%
 	select(year, GDP_cycle_fct, PIT_cycle_fct, salesgen_cycle_fct) %>% 
 	gather(var, value, -year) %>% 
 	qplot(x = year, y = value, color = var, data = ., geom = c("line", "point")) + 
 	geom_hline(yintercept = 1, linetype = 2)
-
 
 
 # Trends
