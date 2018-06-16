@@ -184,6 +184,15 @@ RIG.themeLite <- function() {
 }
 
 
+color_PIT <- RIG.green
+color_salesgen <- "blue"
+color_salessel <- "deepskyblue2"
+color_other <- RIG.purple
+color_propertyLoc <- RIG.yellow.dark
+color_GDP <- "gray50"
+
+
+
 #**********************************************************************
 #             Data preparation 1: tax revenue and GSP              ####
 #**********************************************************************
@@ -893,21 +902,25 @@ df_decomp_real2	%>%
 
 
 # PIT 1: GDP growth, PIT growth and capgains
+fig_cycle_PIT <- 
 df_decomp_real2	%>% 
 	filter(year >= 1988) %>% 
 	select(state_abb, year, GDP_dlogcycle, PIT_dlogcycle, capgains_dlogcycle) %>% 
 	mutate(capgains_dlogcycle = lag(capgains_dlogcycle)) %>%
 	gather(var, value, -state_abb, -year) %>% 
 	mutate(var = factor(var, levels = c("PIT_dlogcycle", "GDP_dlogcycle", "capgains_dlogcycle"),
-											labels = c("Real change in state individual tax", "Real GDP growth", "Real change in capital gains tax (1 year lag)"))) %>%
+											labels = c("Real change in state individual income tax", "Real GDP growth", "Real change in capital gains (1 year lag)"))) %>%
 	qplot(x = year, y = 100 * value, color = var, data=.,  geom = c("line", "point")) + 
 	theme_bw() + RIG.themeLite() + 
 	geom_hline(yintercept = 0, linetype = 2) + 
 	scale_x_continuous(breaks = seq(1950, 2020, 5)) + 
-	scale_color_manual(values = c("blue", RIG.red, "darkgrey")) + 
+	scale_y_continuous(breaks = seq(-100, 100, 10)) + 
+	scale_color_manual(values = c(color_PIT, color_GDP, RIG.red)) + 
 	labs(x = NULL, y = "Percent", color = NULL,
-			 title = "Cyclical components of real growth rates of individual income tax, GDP growth and capital gain tax") + 
+			 title    = "Cyclical changes in state personal income tax, GDP and capital gains",
+			 subtitle = "(Real growth rate calculated based on 2009 dollar)") + 
 	theme(legend.position = "bottom")
+fig_cycle_PIT
 
 
 df_decomp_real2	%>% 
@@ -929,7 +942,10 @@ df_decomp_real2	%>%
 
 
 
+
 # PIT 2: cyclical component (?) of Stock return and capgains
+
+fig_stockCaptains <- 
 df_decomp_real2	%>% 
 	filter(year >= 1988) %>% 
 	select(state_abb, year, capgains_dlog, stockIdx_dlog) %>% 
@@ -938,22 +954,28 @@ df_decomp_real2	%>%
 				 ) %>%
 	gather(var, value, -state_abb, -year) %>% 
 	mutate(var = factor(var, levels = c("capgains_dlog", "stockIdx_dlog"),
-											labels = c("Real change in capital gains tax (1-year lag)", "SP500 total return (1-year lag)"))) %>%
+											labels = c("Real change in capital gains (1-year lag)", "SP500 total return (1-year lag)"))) %>%
 	qplot(x = year, y = 100 * value, color = var, data=.,  geom = c("line", "point")) + 
 	theme_bw() + RIG.themeLite() + 
 	geom_hline(yintercept = 0, linetype = 2) + 
 	scale_x_continuous(breaks = seq(1950, 2020, 5)) + 
+	scale_y_continuous(breaks = seq(-100, 100, 10)) + 
 	scale_color_manual(values = c("blue", RIG.red)) + 
 	labs(x = NULL, y = "Percent", color = NULL,
-			 title = "Real growth rates of individual income tax, GDP growth and capital gain tax") + 
+			 title = "Real changes in capital gains and real stock returns",
+			 subtitle = "(Real growth rate calculated based on 2009 dollar)") + 
 	theme(legend.position = "bottom")
+fig_stockCaptains
+
+ggsave(paste0("policyBrief_out/", "fig_cycle_PIT.png"), fig_cycle_PIT , width = 10*0.8, height = 6*0.8)
+ggsave(paste0("policyBrief_out/", "fig_stockCaptains.png"), fig_stockCaptains , width = 10*0.8, height = 6*0.8)
 
 
 
 # Sales:  gdp growth, gen sales growth and selective sales growth
 
 df_decomp_real2	%>% 
-	#filter(year >= 1988) %>% 
+	filter(year >= 1985) %>% 
 	select(state_abb, year, GDP_dlog, salesgen_dlog, salessel_dlog) %>% 
 	gather(var, value, -state_abb, -year) %>% 
 	mutate(var = factor(var, levels = c( "salesgen_dlog", "salessel_dlog", "GDP_dlog"),
@@ -963,30 +985,34 @@ df_decomp_real2	%>%
 	geom_hline(yintercept = 0, linetype = 2) + 
 	scale_x_continuous(breaks = seq(1950, 2020, 5)) + 
 	scale_y_continuous(breaks = seq(-100, 100, 2)) + 
-	scale_color_manual(values = c("blue", "lightblue", "darkgrey")) + 
+	scale_color_manual(values = c(color_salesgen, color_salessel, color_GDP)) + 
 	labs(x = NULL, y = "Percent", color = NULL,
-			 title = "Real growth rates of sales taxes and GDP") + 
+			 title = "Changes in sales taxes and GDP", 
+			 subtitle = "(Real growth rate calculated based on 2009 dollar)") + 
 	theme(legend.position = "bottom")
 
 
+fig_cycle_sales <- 
 df_decomp_real2	%>% 
 	#filter(year >= 1988) %>% 
-	select(state_abb, year, GDP_dlogcycle, salesgen_dlogcycle) %>% 
+	select(state_abb, year, GDP_dlogcycle, salesgen_dlogcycle, salessel_dlogcycle) %>% 
 	gather(var, value, -state_abb, -year) %>% 
-	mutate(var = factor(var, levels = c( "salesgen_dlogcycle", "GDP_dlogcycle"),
-											labels = c("Real growth of general sales tax", "Real GDP growth"))) %>%
+	mutate(var = factor(var, levels = c( "salesgen_dlogcycle", "salessel_dlogcycle", "GDP_dlogcycle"),
+											labels = c("Real growth of general sales tax", "Real growth of selective sales tax", "Real GDP growth"))) %>%
 	qplot(x = year, y = 100 * value, color = var, data=.,  geom = c("line", "point")) + 
 	theme_bw() + RIG.themeLite() + 
 	geom_hline(yintercept = 0, linetype = 2) + 
 	scale_x_continuous(breaks = seq(1950, 2020, 5)) + 
 	scale_y_continuous(breaks = seq(-100, 100, 2)) + 
-	scale_color_manual(values = c("blue", "darkgrey")) + 
+	scale_color_manual(values = c(color_salesgen, color_salessel, color_GDP)) + 
 	labs(x = NULL, y = "Percent", color = NULL,
-			 title = "Real growth rates of sales taxes and GDP") + 
+			 title = "Cyclical changes in sales taxes and GDP", 
+			 subtitle = "(Real growth rate calculated based on 2009 dollar)") + 
 	theme(legend.position = "bottom")
+fig_cycle_sales
 
 
-
+ggsave(paste0("policyBrief_out/", "fig_cycle_sales.png"), fig_cycle_sales, width = 10*0.8, height = 6*0.8)
 
 
 
@@ -1010,44 +1036,55 @@ df_decomp_real2	%>%
 	theme(legend.position = "bottom")
 
 
+fig_cycle_other <- 
 df_decomp_real2	%>% 
 	#filter(year >= 1988) %>% 
 	select(state_abb, year, GDP_dlogcycle, nonPITsalestot_dlogcycle) %>% 
 	gather(var, value, -state_abb, -year) %>% 
 	mutate(var = factor(var, levels = c("nonPITsalestot_dlogcycle", "GDP_dlogcycle"),
-											labels = c("Real growth of non-personal-income-non-sales taxes", "GDP_dlog"))) %>%
+											labels = c("Real growth of non-personal-income-non-sales taxes", "Real GDP growth"))) %>%
 	qplot(x = year, y = 100 * value, color = var, data=.,  geom = c("line", "point")) + 
 	theme_bw() + RIG.themeLite() + 
 	geom_hline(yintercept = 0, linetype = 2) + 
 	scale_x_continuous(breaks = seq(1950, 2020, 5)) + 
 	scale_y_continuous(breaks = seq(-100, 100, 2)) + 
-	scale_color_manual(values = c("blue", "lightblue", "darkgrey")) + 
+	scale_color_manual(values = c(color_other, color_GDP)) + 
 	labs(x = NULL, y = "Percent", color = NULL,
-			 title = "Real growth rates of non-personal-income-non-sales taxes and GDP") + 
+			 title = "Real growth rates of non-personal-income-non-sales taxes and GDP",
+			 subtitle = "(Real growth rate calculated based on 2009 dollar)") + 
 	theme(legend.position = "bottom")
+fig_cycle_other
 
-
-
+ggsave(paste0("policyBrief_out/", "fig_cycle_other.png"), fig_cycle_other, width = 10*0.8, height = 6*0.8)
 
 
 
 # Property tax: GDP and local property tax growth
+
+fig_cycle_propertyLoc <- 
 df_decomp_real2	%>% 
 	#filter(year >= 1988) %>% 
 	select(state_abb, year, GDP_dlogcycle, propertyLoc_dlogcycle) %>% 
 	mutate(GDP_dlogcycle = lag(GDP_dlogcycle, 2)) %>% 
 	gather(var, value, -state_abb, -year) %>% 
 	mutate(var = factor(var, levels = c("propertyLoc_dlogcycle", "GDP_dlogcycle"),
-											labels = c("Real growth of local property tax", "GDP_dlog"))) %>%
+											labels = c("Real growth of local property tax", "Real GDP growth"))) %>%
 	qplot(x = year, y = 100 * value, color = var, data=.,  geom = c("line", "point")) + 
 	theme_bw() + RIG.themeLite() + 
 	geom_hline(yintercept = 0, linetype = 2) + 
 	scale_x_continuous(breaks = seq(1950, 2020, 5)) + 
 	scale_y_continuous(breaks = seq(-100, 100, 2)) + 
-	scale_color_manual(values = c("blue", "lightblue", "darkgrey")) + 
+	scale_color_manual(values = c(color_propertyLoc, color_GDP)) + 
 	labs(x = NULL, y = "Percent", color = NULL,
-			 title = "Real growth rates of local property tax and GDP") + 
+			 title = "Real growth rates of property tax (local governments) and GDP",
+			 subtitle = "(Real growth rate calculated based on 2009 dollar)"
+			 ) + 
 	theme(legend.position = "bottom")
+fig_cycle_propertyLoc
+
+ggsave(paste0("policyBrief_out/", "fig_cycle_propertyLoc.png"), fig_cycle_propertyLoc, width = 10*0.8, height = 6*0.8)
+
+
 
 
 df_decomp_real2 %>% 
@@ -1101,7 +1138,11 @@ df_decomp_real2 %>%
 #   Figures: trend components                                       ####
 #*******************************************************************************
 
+
+
 # Trend taxes as % of trend GDP
+
+fig_trend_pctGDP <- 
 df_decomp_real2 %>% # PIT vs gen sales as % of GDP
 	select(year, 
 				 PIT_GDP_trend, 
@@ -1110,18 +1151,34 @@ df_decomp_real2 %>% # PIT vs gen sales as % of GDP
 				 nonPITsalestot_GDP_trend,
 				 propertyLoc_GDP_trend) %>% 
 	gather(var, value, -year) %>% 
-	qplot(x = year, y = 100*value, color = var, data = ., geom = c("line", "point")) + theme_bw() + RIG.themeLite() + 
+	mutate(var = factor(var, levels = c('PIT_GDP_trend', 
+																			'salesgen_GDP_trend', 
+																			'salessel_GDP_trend',
+																			'nonPITsalestot_GDP_trend',
+																			'propertyLoc_GDP_trend'),
+	                         labels = c("Personal income tax (state)",
+	                         					  "General sales tax (state)",
+	                         					  "Selective sales tax (state)",
+	                         					  "Non-personal-income-non-sales taxes (state)",
+	                         					  "Property tax (local)"))) %>% 
+	ggplot(aes(x = year, y = 100*value, color = var)) + theme_bw() + RIG.themeLite() + 
+	geom_point() + 
+	geom_line() + 
 	coord_cartesian(ylim = c(0, 3)) + 
 	scale_x_continuous(breaks = seq(1950, 2020, 5)) + 
 	scale_y_continuous(breaks = seq(-100, 100, 0.5)) + 
-	# scale_color_manual(values = c("blue", "lightblue", "darkgrey")) + 
-	labs(x = NULL, y = "Percent", color = NULL,
-			 title = "Trend component of taxes as a percent of trend component GDP") + 
-	theme(legend.position = "bottom")
+	scale_color_manual(values = c(color_PIT, color_salesgen, color_salessel, colors_other, color_propertyLoc)) + 
+	labs(x = NULL, y = "Percent of GDP", color = NULL,
+			 title = "Trends in taxes as a percentage of GDP ",
+			 subtitle = "Calculated using real values (2009 dollar)") + 
+	theme(legend.position = "bottom") + 
+	guides(col = guide_legend(ncol = 3, byrow = TRUE))
 # geom_hline(yintercept = 1, linetype = 2)
 
+fig_trend_pctGDP
 
-# 
+
+# Trend growth of all vars
 df_decomp_real2 %>% # 
 	select(year, 
 				 PIT_dlogtrend, 
@@ -1135,30 +1192,78 @@ df_decomp_real2 %>% #
 	coord_cartesian(ylim = c(0, 6)) + 
 	scale_x_continuous(breaks = seq(1950, 2020, 5)) + 
 	scale_y_continuous(breaks = seq(-100, 100, 0.5)) + 
-	# scale_color_manual(values = c("blue", "lightblue", "darkgrey")) + 
+	scale_color_manual(values = c(color_PIT, color_salesgen, color_salessel, colors_other, color_GDP)) + 
 	labs(x = NULL, y = "Percent", color = NULL,
-			 title = "Trend component of GDP growth and tax") + 
+			 title = "Trend real growth rate of GDP and taxes") + 
 	theme(legend.position = "bottom")
 
 
+
+# Trend growth of GDP, PIT, and gen sales
 df_decomp_real2 %>% # PIT vs gen sales as % of GDP
 	select(year, 
 				 PIT_dlogtrend, 
 				 salesgen_dlogtrend, 
 				 GDP_dlogtrend) %>% 
-	gather(var, value, -year) %>%  
+	gather(vars, value, -year) %>%  
+	mutate(vars = factor(vars, levels = c("PIT_dlogtrend", "salesgen_dlogtrend", "GDP_dlogtrend"),
+											      labels = c("Personal income tax", "General sales tax", "GDP"))) %>% 
 	filter(year >= 1978) %>% 
-	qplot(x = year, y = 100*value, color = var, data = ., geom = c("line", "point")) + theme_bw() + RIG.themeLite() + 
+	ggplot(aes(x = year, y = 100*value, color = vars, shape = vars)) + theme_bw() + RIG.themeLite() + 
+	geom_point() + 
+	geom_line() + 
 	coord_cartesian(ylim = c(0, 6)) + 
 	scale_x_continuous(breaks = seq(1950, 2020, 5)) + 
 	scale_y_continuous(breaks = seq(-100, 100, 0.5)) + 
-	# scale_color_manual(values = c("blue", "lightblue", "darkgrey")) + 
-	labs(x = NULL, y = "Percent", color = NULL,
-			 title = "Trend component of taxes as a percent of trend component GDP") + 
+	scale_color_manual(values = c(color_PIT, color_salesgen, color_GDP)) + 
+	labs(x = NULL, y = "Percent", color = NULL, shape = NULL,
+			 title = "Trend real growth rate of GDP and taxes") + 
 	theme(legend.position = "bottom")
 
 
+# Trend growth rates, grid plot
+fig_trend_growth <- 
+df_decomp_real2 %>% # 
+	select(year, 
+				 PIT_dlogtrend, 
+				 salesgen_dlogtrend, 
+				 salessel_dlogtrend,
+				 nonPITsalestot_dlogtrend,
+				 propertyLoc_dlogtrend) %>% 
+	gather(tax_type, tax_growth, -year) %>% 
+	left_join(df_decomp_real2 %>% select(year, GDP_dlogtrend)) %>% 
+	gather(var, value, -year, -tax_type) %>% 
+	mutate(tax_type = factor(tax_type, levels = c("PIT_dlogtrend", 
+																				"salesgen_dlogtrend", 
+																				"salessel_dlogtrend",
+																				"nonPITsalestot_dlogtrend",
+																				"propertyLoc_dlogtrend"),
+											       labels = c("Personal income tax (state)",
+											       					 "General sales tax (state)",
+											       					 "Selective sales tax (state)",
+											       					 "Non-personal-income-non-sales taxes (state)",
+											       					 "Property tax (local)"
+											       					 )),
+				 var = factor(var, levels = c("tax_growth", "GDP_dlogtrend"),
+				 						       labels = c("Real tax growth", "Real GDP growth"))
+				 ) %>% 
+	
+	ggplot(aes(x = year, y = 100*value, color = var, shape = var)) + theme_bw() + RIG.themeLite() + 
+	facet_wrap( ~tax_type , ncol = 2) + 
+	geom_point() + 
+	geom_line()+
+	scale_x_continuous(breaks = seq(1950, 2020, 5)) + 
+	scale_y_continuous(breaks = seq(-100, 100, 1)) + 
+	scale_color_manual(values = c("blue", color_GDP)) + 
+	labs(x = NULL, y = "Growth rate (%)", color = NULL, shape = NULL,
+			 title = "Trend real growth of GDP and tax revenues",
+			 subtitle = "Real growth calculated based on 2009 dollar") + 
+	theme(legend.position = "bottom")
+fig_trend_growth
 
+
+ggsave(paste0("policyBrief_out/", "fig_trend_pctGDP.png"), fig_trend_pctGDP, width = 10*0.9, height = 7*0.9)
+ggsave(paste0("policyBrief_out/", "fig_trend_growth.png"), fig_trend_growth, width = 8*0.9, height = 10*0.9)
 
 
 
