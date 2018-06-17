@@ -248,23 +248,23 @@ trend_growth_stock_real
 
 # Structure of tax revenue for stylized governments
 
-taxShare_PITState   <- c(share_PIT = 0.55, 
-							  		     share_salesGen = 0.2,
-							  		     share_salesSel = 0.1,
-							  		     share_other = 0.15,
-												 share_propertyLoc = 0)
+taxShare_PITState   <- c(PIT = 0.55, 
+							  		     salesGen = 0.2,
+							  		     salesSel = 0.1,
+							  		     other = 0.15,
+												 propertyLoc = 0)
 
-taxShare_salesState <- c(share_PIT = 0, 
-									       share_salesGen = 0.6,
-									       share_salesSel = 0.25,
-									       share_other = 0.15,
-												 share_propertyLoc = 0)
+taxShare_salesState <- c(PIT = 0, 
+									       salesGen = 0.6,
+									       salesSel = 0.25,
+									       other = 0.15,
+												 propertyLoc = 0)
 
-taxShare_local <- c(share_PIT = 0, 
-												 share_salesGen = 0,
-												 share_salesSel = 0,
-												 share_other = 0,
-												 share_propertyLoc = 1)
+taxShare_local <- c(PIT = 0, 
+									  salesGen = 0,
+									  salesSel = 0,
+									  other = 0,
+									  propertyLoc = 1)
 
 
 
@@ -344,51 +344,9 @@ taxGrowth_adjRecession_2 <-
 
 
 #**********************************************************************
-#    Tax growth assumptions for stylized governments       ####
+#    Calculating tax revenue for stylized governments              ####
 #**********************************************************************
 
-# Assumption 1
-# base_PITState_1          <- sum(taxShare_PITState * taxGrowth_base_1)
-# elast_GDP_PITState_1     <- sum(taxShare_PITState * taxGrowth_elastGDP_1)
-# elast_stock_PITState_1   <- sum(taxShare_PITState * taxGrowth_elastStock_1)
-# 
-# base_salesState_1        <- sum(taxShare_salesState * taxGrowth_base_1)
-# elast_GDP_salesState_1   <- sum(taxShare_salesState * taxGrowth_elastGDP_1)
-# elast_stock_salesState_1 <- sum(taxShare_salesState * taxGrowth_elastStock_1)
-# 
-# 
-# base_PITState_1
-# elast_GDP_PITState_1 
-# elast_stock_PITState_1
-# 
-# base_salesState_1
-# elast_GDP_salesState_1 
-# elast_stock_salesState_1
-# 
-# 
-# # Assumption 2
-# base_PITState_2          <- sum(taxShare_PITState * taxGrowth_base_2)
-# elast_GDP_PITState_2     <- sum(taxShare_PITState * taxGrowth_elastGDP_2)
-# elast_stock_PITState_2   <- sum(taxShare_PITState * taxGrowth_elastStock_2)
-# 
-# base_salesState_2        <- sum(taxShare_salesState * taxGrowth_base_2)
-# elast_GDP_salesState_2   <- sum(taxShare_salesState * taxGrowth_elastGDP_2)
-# elast_stock_salesState_2 <- sum(taxShare_salesState * taxGrowth_elastStock_2)
-# 
-# 
-# base_PITState_2
-# elast_GDP_PITState_2 
-# elast_stock_PITState_2
-# 
-# base_salesState_2
-# elast_GDP_salesState_2 
-# elast_stock_salesState_2
-
-
-
-#**********************************************************************
-#       Illustration of a single simulation                        ####
-#**********************************************************************
 
 df_sim %>% head
 
@@ -401,53 +359,167 @@ df_sim %<>%
 
 # Calculate tax growth
 df_sim %<>% 
-	mutate(growthReal_PIT_a1         = taxGrowth_trend_1["PIT"] + taxGrowth_elastGDP_1["PIT"] * gdp_chg_cycle + taxGrowth_elastStock_1["PIT"] * stockreturn_real_cycle + taxGrowth_adjRecession_1["PIT"], 
+	mutate(
+		     # Real growth rate for tax revenue under A1 
+		     growthReal_PIT_a1         = taxGrowth_trend_1["PIT"] + taxGrowth_elastGDP_1["PIT"] * gdp_chg_cycle + taxGrowth_elastStock_1["PIT"] * stockreturn_real_cycle + taxGrowth_adjRecession_1["PIT"], 
 				 growthReal_salesGen_a1    = taxGrowth_trend_1["salesGen"] + taxGrowth_elastGDP_1["salesGen"] * gdp_chg_cycle + taxGrowth_adjRecession_1["salesGen"],
 				 growthReal_salesSel_a1    = taxGrowth_trend_1["salesSel"] + taxGrowth_elastGDP_1["salesSel"] * gdp_chg_cycle + taxGrowth_adjRecession_1["salesSel"],
 				 growthReal_other_a1       = taxGrowth_trend_1["other"] + taxGrowth_elastGDP_1["other"] * gdp_chg_cycle + taxGrowth_adjRecession_1["other"],
 				 growthReal_propertyLoc_a1 = taxGrowth_trend_1["propertyLoc"] + taxGrowth_elastGDP_1["propertyLoc"] * gdp_chg_cycle + taxGrowth_adjRecession_1["propertyLoc"],
 		     
+				 # Real growth rate for tax revenue under A2 
 				 growthReal_PIT_a2         = taxGrowth_trend_2["PIT"] + taxGrowth_elastGDP_2["PIT"] * gdp_chg_cycle + taxGrowth_elastStock_2["PIT"] * stockreturn_real_cycle + taxGrowth_adjRecession_2["PIT"], 
 				 growthReal_salesGen_a2    = taxGrowth_trend_2["salesGen"] + taxGrowth_elastGDP_2["salesGen"] * gdp_chg_cycle + taxGrowth_adjRecession_2["salesGen"],
 				 growthReal_salesSel_a2    = taxGrowth_trend_2["salesSel"] + taxGrowth_elastGDP_2["salesSel"] * gdp_chg_cycle + taxGrowth_adjRecession_2["salesSel"],
 				 growthReal_other_a2       = taxGrowth_trend_2["other"] + taxGrowth_elastGDP_2["other"] * gdp_chg_cycle + taxGrowth_adjRecession_2["other"],
-				 growthReal_propertyLoc_a2 = taxGrowth_trend_2["propertyLoc"] + taxGrowth_elastGDP_2["propertyLoc"] * gdp_chg_cycle + taxGrowth_adjRecession_2["propertyLoc"],
-				 
-				 growthReal_tot_PITState_a1 = growthReal_PIT_a1 * taxShare_PITState["share_PIT"] + growthReal_salesGen_a1 * taxShare_PITState["share_salesGen"] + 
-				 	                            growthReal_salesSel_a1 * taxShare_PITState["share_salesSel"] + growthReal_other_a1 * taxShare_PITState["share_other"] + growthReal_propertyLoc_a1 * taxShare_PITState["share_propertyLoc"],
-				 
-				 growthReal_tot_salesState_a1 = growthReal_PIT_a1 * taxShare_salesState["share_PIT"] + growthReal_salesGen_a1 * taxShare_salesState["share_salesGen"] + 
-				                                growthReal_salesSel_a1 * taxShare_salesState["share_salesSel"] + growthReal_other_a1 * taxShare_salesState["share_other"] + growthReal_propertyLoc_a1 * taxShare_salesState["share_propertyLoc"],
-				  
-				 growthReal_tot_local_a1 = growthReal_PIT_a1 * taxShare_local["share_PIT"] + growthReal_salesGen_a1 * taxShare_local["share_salesGen"] + 
-				 	                         growthReal_salesSel_a1 * taxShare_local["share_salesSel"] + growthReal_other_a1 * taxShare_local["share_other"] + growthReal_propertyLoc_a1 * taxShare_local["share_propertyLoc"],
-				 
-				 
-				 growthReal_tot_PITState_a2 = growthReal_PIT_a2 * taxShare_PITState["share_PIT"] + growthReal_salesGen_a2 * taxShare_PITState["share_salesGen"] + 
-				                             	growthReal_salesSel_a2 * taxShare_PITState["share_salesSel"] + growthReal_other_a2 * taxShare_PITState["share_other"] + growthReal_propertyLoc_a2 * taxShare_PITState["share_propertyLoc"],
-				 
-				 growthReal_tot_salesState_a2 = growthReal_PIT_a2 * taxShare_salesState["share_PIT"] + growthReal_salesGen_a2 * taxShare_salesState["share_salesGen"] + 
-				 	                              growthReal_salesSel_a2 * taxShare_salesState["share_salesSel"] + growthReal_other_a2 * taxShare_salesState["share_other"] + growthReal_propertyLoc_a2 * taxShare_salesState["share_propertyLoc"],
-				 
-				 growthReal_tot_local_a2 = growthReal_PIT_a2 * taxShare_local["share_PIT"] + growthReal_salesGen_a2 * taxShare_local["share_salesGen"] + 
-				 	                         growthReal_salesSel_a2 * taxShare_local["share_salesSel"] + growthReal_other_a2 * taxShare_local["share_other"] + growthReal_propertyLoc_a2 * taxShare_local["share_propertyLoc"]
-				 
+				 growthReal_propertyLoc_a2 = taxGrowth_trend_2["propertyLoc"] + taxGrowth_elastGDP_2["propertyLoc"] * gdp_chg_cycle + taxGrowth_adjRecession_2["propertyLoc"]
 		      ) %>% 
 	group_by(sim) %>% 
 	mutate(gdpLevel = cumprod(1 + gdp_chg),
-				 taxLevel_PITState_a1   = cumprod(1 + growthReal_tot_PITState_a1),
-				 taxLevel_salesState_a1 = cumprod(1 + growthReal_tot_salesState_a1),
-				 taxLevel_local_a1      = cumprod(1 + growthReal_tot_local_a1),
+
+				 # Future real tax revenue for $1 revenue in t_0.
+				 taxLevelReal_PIT_a1      = cumprod(1 + growthReal_PIT_a1),
+				 taxLevelReal_salesGen_a1 = cumprod(1 + growthReal_salesGen_a1),
+				 taxLevelReal_salesSel_a1 = cumprod(1 + growthReal_salesSel_a1),
+				 taxLevelReal_other_a1    = cumprod(1 + growthReal_other_a1),
+				 taxLevelReal_propertyLoc_a1 = cumprod(1 + growthReal_propertyLoc_a1),
 				 
-				 taxLevel_PITState_a2   = cumprod(1 + growthReal_tot_PITState_a2),
-				 taxLevel_salesState_a2 = cumprod(1 + growthReal_tot_salesState_a2),
-				 taxLevel_local_a2      = cumprod(1 + growthReal_tot_local_a2)
-				 ) %>% 
+				 taxLevelReal_PIT_a2      = cumprod(1 + growthReal_PIT_a2),
+				 taxLevelReal_salesGen_a2 = cumprod(1 + growthReal_salesGen_a2),
+				 taxLevelReal_salesSel_a2 = cumprod(1 + growthReal_salesSel_a2),
+				 taxLevelReal_other_a2    = cumprod(1 + growthReal_other_a2),
+				 taxLevelReal_propertyLoc_a2 = cumprod(1 + growthReal_propertyLoc_a2),
+				 
+				 
+			# For PIT state
+			   # tax revenue for each category, A1
+				 taxLevelReal_PITState_PIT_a1         = taxShare_PITState["PIT"]      * taxLevelReal_PIT_a1,
+				 taxLevelReal_PITState_salesGen_a1    = taxShare_PITState["salesGen"] * taxLevelReal_salesGen_a1,
+				 taxLevelReal_PITState_salesSel_a1    = taxShare_PITState["salesSel"] * taxLevelReal_salesSel_a1,
+				 taxLevelReal_PITState_other_a1       = taxShare_PITState["other"]    * taxLevelReal_other_a1,
+				 taxLevelReal_PITState_propertyLoc_a1 = taxShare_PITState["propertyLoc"] * taxLevelReal_propertyLoc_a1,
+				 
+			   # total tax, A1
+				 taxLevelReal_PITState_tot_a1 = taxLevelReal_PITState_PIT_a1 + taxLevelReal_PITState_salesGen_a1 + taxLevelReal_PITState_salesSel_a1 + 
+				                              	taxLevelReal_PITState_other_a1 + taxLevelReal_PITState_propertyLoc_a1,
+			   growthReal_tot_PITState_a1   = ifelse(year  == 1, taxLevelReal_PITState_tot_a1 - 1, taxLevelReal_PITState_tot_a1/lag(taxLevelReal_PITState_tot_a1) - 1),
+			
+			
+				 # Share of each tax category, A1
+				 taxShare_PITState_PIT_a1         = taxLevelReal_PITState_PIT_a1   /     taxLevelReal_PITState_tot_a1,
+				 taxShare_PITState_salesGen_a1    = taxLevelReal_PITState_salesGen_a1  / taxLevelReal_PITState_tot_a1,
+				 taxShare_PITState_salesSel_a1    = taxLevelReal_PITState_salesSel_a1  / taxLevelReal_PITState_tot_a1,
+				 taxShare_PITState_other_a1       = taxLevelReal_PITState_other_a1 /     taxLevelReal_PITState_tot_a1,
+				 taxShare_PITState_propertyLoc_a1 = taxLevelReal_PITState_propertyLoc_a1/taxLevelReal_PITState_tot_a1,
+				
+			   # tax revenue for each category, A2
+				 taxLevelReal_PITState_PIT_a2         = taxShare_PITState["PIT"] * taxLevelReal_PIT_a2,
+				 taxLevelReal_PITState_salesGen_a2    = taxShare_PITState["salesGen"] * taxLevelReal_salesGen_a2,
+				 taxLevelReal_PITState_salesSel_a2    = taxShare_PITState["salesSel"] * taxLevelReal_salesSel_a2,
+				 taxLevelReal_PITState_other_a2       = taxShare_PITState["other"] * taxLevelReal_other_a2,
+				 taxLevelReal_PITState_propertyLoc_a2 = taxShare_PITState["propertyLoc"] * taxLevelReal_propertyLoc_a2,
+				 
+			   # total tax, A2
+				 taxLevelReal_PITState_tot_a2 = taxLevelReal_PITState_PIT_a2 + taxLevelReal_PITState_salesGen_a2 + taxLevelReal_PITState_salesSel_a2 + 
+				                                taxLevelReal_PITState_other_a2 + taxLevelReal_PITState_propertyLoc_a2,
+			   growthReal_tot_PITState_a2   = ifelse(year == 1, taxLevelReal_PITState_tot_a2 - 1, taxLevelReal_PITState_tot_a2/lag(taxLevelReal_PITState_tot_a2) - 1),
+			
+			
+		     # Share of each tax category, A2
+			   taxShare_PITState_PIT_a1         = taxLevelReal_PITState_PIT_a1   /     taxLevelReal_PITState_tot_a1,
+			   taxShare_PITState_salesGen_a1    = taxLevelReal_PITState_salesGen_a1  / taxLevelReal_PITState_tot_a1,
+			   taxShare_PITState_salesSel_a1    = taxLevelReal_PITState_salesSel_a1  / taxLevelReal_PITState_tot_a1,
+			   taxShare_PITState_other_a1       = taxLevelReal_PITState_other_a1 /     taxLevelReal_PITState_tot_a1,
+			   taxShare_PITState_propertyLoc_a1 = taxLevelReal_PITState_propertyLoc_a1/taxLevelReal_PITState_tot_a1,
+				 
+			# For sales tax state
+		    	# tax revenue for each category, A1
+		    	taxLevelReal_salesState_PIT_a1         = taxShare_salesState["PIT"]      * taxLevelReal_PIT_a1,
+		    	taxLevelReal_salesState_salesGen_a1    = taxShare_salesState["salesGen"] * taxLevelReal_salesGen_a1,
+		    	taxLevelReal_salesState_salesSel_a1    = taxShare_salesState["salesSel"] * taxLevelReal_salesSel_a1,
+		    	taxLevelReal_salesState_other_a1       = taxShare_salesState["other"]    * taxLevelReal_other_a1,
+		    	taxLevelReal_salesState_propertyLoc_a1 = taxShare_salesState["propertyLoc"] * taxLevelReal_propertyLoc_a1,
+		    	
+		    	# total tax, A1
+		    	taxLevelReal_salesState_tot_a1 = taxLevelReal_salesState_PIT_a1 + taxLevelReal_salesState_salesGen_a1 + taxLevelReal_salesState_salesSel_a1 + 
+		    		                               taxLevelReal_salesState_other_a1 + taxLevelReal_salesState_propertyLoc_a1,
+			    growthReal_tot_salesState_a1   = ifelse(year  == 1, taxLevelReal_salesState_tot_a1 - 1, taxLevelReal_salesState_tot_a1/lag(taxLevelReal_salesState_tot_a1) - 1),
+			
+		    	# Share of each tax category, A1
+		    	taxShare_salesState_PIT_a1         = taxLevelReal_salesState_PIT_a1   /     taxLevelReal_salesState_tot_a1,
+		    	taxShare_salesState_salesGen_a1    = taxLevelReal_salesState_salesGen_a1  / taxLevelReal_salesState_tot_a1,
+		    	taxShare_salesState_salesSel_a1    = taxLevelReal_salesState_salesSel_a1  / taxLevelReal_salesState_tot_a1,
+		    	taxShare_salesState_other_a1       = taxLevelReal_salesState_other_a1 /     taxLevelReal_salesState_tot_a1,
+		    	taxShare_salesState_propertyLoc_a1 = taxLevelReal_salesState_propertyLoc_a1/taxLevelReal_salesState_tot_a1,
+		    	
+		    	# tax revenue for each category, A2
+		    	taxLevelReal_salesState_PIT_a2         = taxShare_salesState["PIT"] * taxLevelReal_PIT_a2,
+		    	taxLevelReal_salesState_salesGen_a2    = taxShare_salesState["salesGen"] * taxLevelReal_salesGen_a2,
+		    	taxLevelReal_salesState_salesSel_a2    = taxShare_salesState["salesSel"] * taxLevelReal_salesSel_a2,
+		    	taxLevelReal_salesState_other_a2       = taxShare_salesState["other"] * taxLevelReal_other_a2,
+		    	taxLevelReal_salesState_propertyLoc_a2 = taxShare_salesState["propertyLoc"] * taxLevelReal_propertyLoc_a2,
+		    	
+		    	# total tax, A2
+		    	taxLevelReal_salesState_tot_a2 = taxLevelReal_salesState_PIT_a2 + taxLevelReal_salesState_salesGen_a2 + taxLevelReal_salesState_salesSel_a2 + 
+		    		                               taxLevelReal_salesState_other_a2 + taxLevelReal_salesState_propertyLoc_a2,
+			    growthReal_tot_salesState_a2   = ifelse(year  == 1, taxLevelReal_salesState_tot_a2 - 1, taxLevelReal_salesState_tot_a2/lag(taxLevelReal_salesState_tot_a2) - 1),
+			    
+			
+		    	# Share of each tax category, A2
+		    	taxShare_salesState_PIT_a1         = taxLevelReal_salesState_PIT_a1   /     taxLevelReal_salesState_tot_a1,
+		    	taxShare_salesState_salesGen_a1    = taxLevelReal_salesState_salesGen_a1  / taxLevelReal_salesState_tot_a1,
+		    	taxShare_salesState_salesSel_a1    = taxLevelReal_salesState_salesSel_a1  / taxLevelReal_salesState_tot_a1,
+		    	taxShare_salesState_other_a1       = taxLevelReal_salesState_other_a1 /     taxLevelReal_salesState_tot_a1,
+		    	taxShare_salesState_propertyLoc_a1 = taxLevelReal_salesState_propertyLoc_a1/taxLevelReal_salesState_tot_a1,	 
+				 
+			  # For local gov
+			    # tax revenue for each category, A1
+			    taxLevelReal_local_PIT_a1         = taxShare_local["PIT"]      * taxLevelReal_PIT_a1,
+			    taxLevelReal_local_salesGen_a1    = taxShare_local["salesGen"] * taxLevelReal_salesGen_a1,
+			    taxLevelReal_local_salesSel_a1    = taxShare_local["salesSel"] * taxLevelReal_salesSel_a1,
+			    taxLevelReal_local_other_a1       = taxShare_local["other"]    * taxLevelReal_other_a1,
+			    taxLevelReal_local_propertyLoc_a1 = taxShare_local["propertyLoc"] * taxLevelReal_propertyLoc_a1,
+			    
+			    # total tax, A1
+			    taxLevelReal_local_tot_a1 = taxLevelReal_local_PIT_a1 + taxLevelReal_local_salesGen_a1 + taxLevelReal_local_salesSel_a1 + 
+			                               	taxLevelReal_local_other_a1 + taxLevelReal_local_propertyLoc_a1,
+			    growthReal_tot_local_a1   = ifelse(year  == 1, taxLevelReal_local_tot_a1 - 1, taxLevelReal_local_tot_a1/lag(taxLevelReal_local_tot_a1) - 1),
+			    
+			    # Share of each tax category, A1
+			    taxShare_local_PIT_a1         = taxLevelReal_local_PIT_a1   /     taxLevelReal_local_tot_a1,
+			    taxShare_local_salesGen_a1    = taxLevelReal_local_salesGen_a1  / taxLevelReal_local_tot_a1,
+			    taxShare_local_salesSel_a1    = taxLevelReal_local_salesSel_a1  / taxLevelReal_local_tot_a1,
+			    taxShare_local_other_a1       = taxLevelReal_local_other_a1 /     taxLevelReal_local_tot_a1,
+			    taxShare_local_propertyLoc_a1 = taxLevelReal_local_propertyLoc_a1/taxLevelReal_local_tot_a1,
+			    
+			    # tax revenue for each category, A2
+			    taxLevelReal_local_PIT_a2         = taxShare_local["PIT"] * taxLevelReal_PIT_a2,
+			    taxLevelReal_local_salesGen_a2    = taxShare_local["salesGen"] * taxLevelReal_salesGen_a2,
+			    taxLevelReal_local_salesSel_a2    = taxShare_local["salesSel"] * taxLevelReal_salesSel_a2,
+			    taxLevelReal_local_other_a2       = taxShare_local["other"] * taxLevelReal_other_a2,
+			    taxLevelReal_local_propertyLoc_a2 = taxShare_local["propertyLoc"] * taxLevelReal_propertyLoc_a2,
+			    
+			    # total tax, A2
+			    taxLevelReal_local_tot_a2 = taxLevelReal_local_PIT_a2 + taxLevelReal_local_salesGen_a2 + taxLevelReal_local_salesSel_a2 + 
+			    	                          taxLevelReal_local_other_a2 + taxLevelReal_local_propertyLoc_a2,
+		    	growthReal_tot_local_a2   = ifelse(year  == 1, taxLevelReal_local_tot_a2 - 1, taxLevelReal_local_tot_a2/lag(taxLevelReal_local_tot_a2) - 1),
+			
+			    # Share of each tax category, A2
+			    taxShare_local_PIT_a1         = taxLevelReal_local_PIT_a1   /     taxLevelReal_local_tot_a1,
+			    taxShare_local_salesGen_a1    = taxLevelReal_local_salesGen_a1  / taxLevelReal_local_tot_a1,
+			    taxShare_local_salesSel_a1    = taxLevelReal_local_salesSel_a1  / taxLevelReal_local_tot_a1,
+			    taxShare_local_other_a1       = taxLevelReal_local_other_a1 /     taxLevelReal_local_tot_a1,
+			    taxShare_local_propertyLoc_a1 = taxLevelReal_local_propertyLoc_a1/taxLevelReal_local_tot_a1
+	) %>% 
 	ungroup()
 	
 #df_sim %>% select(year, taxLevel_PITState_a1)
 	
 
+
+#**********************************************************************
+#       Illustration of a single simulation                        ####
+#**********************************************************************
 
 # Example simulation #2:
 
@@ -473,11 +545,15 @@ df_sim %>% filter(sim == 2) %>%
 	theme(legend.position = "bottom")
 fig_singleSim_GDP
 
+
+
+
+
 fig_singleSim_tax_a1 <- 
 df_sim %>% filter(sim == 2) %>% 
-	select(sim, year, taxGrowth_PITState_a1, taxGrowth_salesState_a1) %>% 
+	select(sim, year, growthReal_tot_PITState_a1, growthReal_tot_salesState_a1) %>% 
 	gather(var, value, -sim, - year) %>% 
-	mutate(var = factor(var, levels = c("taxGrowth_PITState_a1", "taxGrowth_salesState_a1"), 
+	mutate(var = factor(var, levels = c("growthReal_tot_PITState_a1", "growthReal_tot_salesState_a1"), 
 											     labels = c("PIT dominant state", "Sales tax dominant state"))) %>% 
 	ggplot(aes(x = year, y = 100 * value, color = var, shape = var)) + theme_bw() + RIG.themeLite() + 
 	geom_line() + 
@@ -495,11 +571,12 @@ df_sim %>% filter(sim == 2) %>%
 	theme(legend.position = "bottom") 
 fig_singleSim_tax_a1 
 
+
 fig_singleSim_tax_a2 <- 
 df_sim %>% filter(sim == 2) %>% 
-	select(sim, year, taxGrowth_PITState_a2, taxGrowth_salesState_a2) %>% 
+	select(sim, year, growthReal_tot_PITState_a2, growthReal_tot_salesState_a2) %>% 
 	gather(var, value, -sim, - year) %>% 
-	mutate(var = factor(var, levels = c("taxGrowth_PITState_a2", "taxGrowth_salesState_a2"), 
+	mutate(var = factor(var, levels = c("growthReal_tot_PITState_a2", "growthReal_tot_salesState_a2"), 
 											labels = c("PIT dominant state", "Sales tax dominant state"))) %>% 
 	ggplot(aes(x = year, y = 100 * value, color = var)) + theme_bw() + RIG.themeLite() + 
 	geom_line() + 
@@ -546,53 +623,53 @@ df_sim %>%
 		stockreturn_q75 = quantile(stockreturn, 0.75),
 		stockreturn_q90 = quantile(stockreturn, 0.90),
 		
-		taxGrowth_PITState_a1_q10 = quantile(taxGrowth_PITState_a1, 0.1),
-		taxGrowth_PITState_a1_q25 = quantile(taxGrowth_PITState_a1, 0.25),
-		taxGrowth_PITState_a1_q50 = quantile(taxGrowth_PITState_a1, 0.50),
-		taxGrowth_PITState_a1_q75 = quantile(taxGrowth_PITState_a1, 0.75),
-		taxGrowth_PITState_a1_q90 = quantile(taxGrowth_PITState_a1, 0.90),
+		GrowthReal_tot_PITState_a1_q10 = quantile(growthReal_tot_PITState_a1, 0.1),
+		GrowthReal_tot_PITState_a1_q25 = quantile(growthReal_tot_PITState_a1, 0.25),
+		GrowthReal_tot_PITState_a1_q50 = quantile(growthReal_tot_PITState_a1, 0.50),
+		GrowthReal_tot_PITState_a1_q75 = quantile(growthReal_tot_PITState_a1, 0.75),
+		GrowthReal_tot_PITState_a1_q90 = quantile(growthReal_tot_PITState_a1, 0.90),
 		
-		taxGrowth_PITState_a2_q10 = quantile(taxGrowth_PITState_a2, 0.1),
-		taxGrowth_PITState_a2_q25 = quantile(taxGrowth_PITState_a2, 0.25),
-		taxGrowth_PITState_a2_q50 = quantile(taxGrowth_PITState_a2, 0.50),
-		taxGrowth_PITState_a2_q75 = quantile(taxGrowth_PITState_a2, 0.75),
-		taxGrowth_PITState_a2_q90 = quantile(taxGrowth_PITState_a2, 0.90),
+		GrowthReal_tot_PITState_a2_q10 = quantile(growthReal_tot_PITState_a2, 0.1),
+		GrowthReal_tot_PITState_a2_q25 = quantile(growthReal_tot_PITState_a2, 0.25),
+		GrowthReal_tot_PITState_a2_q50 = quantile(growthReal_tot_PITState_a2, 0.50),
+		GrowthReal_tot_PITState_a2_q75 = quantile(growthReal_tot_PITState_a2, 0.75),
+		GrowthReal_tot_PITState_a2_q90 = quantile(growthReal_tot_PITState_a2, 0.90),
 		
-		taxGrowth_salesState_a1_q10 = quantile(taxGrowth_salesState_a1, 0.1),
-		taxGrowth_salesState_a1_q25 = quantile(taxGrowth_salesState_a1, 0.25),
-		taxGrowth_salesState_a1_q50 = quantile(taxGrowth_salesState_a1, 0.50),
-		taxGrowth_salesState_a1_q75 = quantile(taxGrowth_salesState_a1, 0.75),
-		taxGrowth_salesState_a1_q90 = quantile(taxGrowth_salesState_a1, 0.90),
+		GrowthReal_tot_salesState_a1_q25 = quantile(growthReal_tot_salesState_a1, 0.25),
+		GrowthReal_tot_salesState_a1_q50 = quantile(growthReal_tot_salesState_a1, 0.50),
+		GrowthReal_tot_salesState_a1_q75 = quantile(growthReal_tot_salesState_a1, 0.75),
+		GrowthReal_tot_salesState_a1_q90 = quantile(growthReal_tot_salesState_a1, 0.90),
+		GrowthReal_tot_salesState_a1_q10 = quantile(growthReal_tot_salesState_a1, 0.1),
 		
-		taxGrowth_salesState_a2_q10 = quantile(taxGrowth_salesState_a2, 0.1),
-		taxGrowth_salesState_a2_q25 = quantile(taxGrowth_salesState_a2, 0.25),
-		taxGrowth_salesState_a2_q50 = quantile(taxGrowth_salesState_a2, 0.50),
-		taxGrowth_salesState_a2_q75 = quantile(taxGrowth_salesState_a2, 0.75),
-		taxGrowth_salesState_a2_q90 = quantile(taxGrowth_salesState_a2, 0.90),
+		GrowthReal_tot_salesState_a2_q10 = quantile(growthReal_tot_salesState_a2, 0.1),
+		GrowthReal_tot_salesState_a2_q25 = quantile(growthReal_tot_salesState_a2, 0.25),
+		GrowthReal_tot_salesState_a2_q50 = quantile(growthReal_tot_salesState_a2, 0.50),
+		GrowthReal_tot_salesState_a2_q75 = quantile(growthReal_tot_salesState_a2, 0.75),
+		GrowthReal_tot_salesState_a2_q90 = quantile(growthReal_tot_salesState_a2, 0.90),
 		
-		taxLevel_PITState_a1_q10 = quantile(taxLevel_PITState_a1, 0.1),
-		taxLevel_PITState_a1_q25 = quantile(taxLevel_PITState_a1, 0.25),
-		taxLevel_PITState_a1_q50 = quantile(taxLevel_PITState_a1, 0.50),
-		taxLevel_PITState_a1_q75 = quantile(taxLevel_PITState_a1, 0.75),
-		taxLevel_PITState_a1_q90 = quantile(taxLevel_PITState_a1, 0.90),
+		taxLevelReal_PITState_tot_a1_q10 = quantile(taxLevelReal_PITState_tot_a1, 0.1),
+		taxLevelReal_PITState_tot_a1_q25 = quantile(taxLevelReal_PITState_tot_a1, 0.25),
+		taxLevelReal_PITState_tot_a1_q50 = quantile(taxLevelReal_PITState_tot_a1, 0.50),
+		taxLevelReal_PITState_tot_a1_q75 = quantile(taxLevelReal_PITState_tot_a1, 0.75),
+		taxLevelReal_PITState_tot_a1_q90 = quantile(taxLevelReal_PITState_tot_a1, 0.90),
 		
-		taxLevel_PITState_a2_q10 = quantile(taxLevel_PITState_a2, 0.1),
-		taxLevel_PITState_a2_q25 = quantile(taxLevel_PITState_a2, 0.25),
-		taxLevel_PITState_a2_q50 = quantile(taxLevel_PITState_a2, 0.50),
-		taxLevel_PITState_a2_q75 = quantile(taxLevel_PITState_a2, 0.75),
-		taxLevel_PITState_a2_q90 = quantile(taxLevel_PITState_a2, 0.90),
+		taxLevelReal_PITState_tot_a2_q10 = quantile(taxLevelReal_PITState_tot_a2, 0.1),
+		taxLevelReal_PITState_tot_a2_q25 = quantile(taxLevelReal_PITState_tot_a2, 0.25),
+		taxLevelReal_PITState_tot_a2_q50 = quantile(taxLevelReal_PITState_tot_a2, 0.50),
+		taxLevelReal_PITState_tot_a2_q75 = quantile(taxLevelReal_PITState_tot_a2, 0.75),
+		taxLevelReal_PITState_tot_a2_q90 = quantile(taxLevelReal_PITState_tot_a2, 0.90),
 		
-		taxLevel_salesState_a1_q10 = quantile(taxLevel_salesState_a1, 0.1),
-		taxLevel_salesState_a1_q25 = quantile(taxLevel_salesState_a1, 0.25),
-		taxLevel_salesState_a1_q50 = quantile(taxLevel_salesState_a1, 0.50),
-		taxLevel_salesState_a1_q75 = quantile(taxLevel_salesState_a1, 0.75),
-		taxLevel_salesState_a1_q90 = quantile(taxLevel_salesState_a1, 0.90),
+		taxLevelReal_salesState_tot_a1_q10 = quantile(taxLevelReal_salesState_tot_a1, 0.1),
+		taxLevelReal_salesState_tot_a1_q25 = quantile(taxLevelReal_salesState_tot_a1, 0.25),
+		taxLevelReal_salesState_tot_a1_q50 = quantile(taxLevelReal_salesState_tot_a1, 0.50),
+		taxLevelReal_salesState_tot_a1_q75 = quantile(taxLevelReal_salesState_tot_a1, 0.75),
+		taxLevelReal_salesState_tot_a1_q90 = quantile(taxLevelReal_salesState_tot_a1, 0.90),
 		
-		taxLevel_salesState_a2_q10 = quantile(taxLevel_salesState_a2, 0.1),
-		taxLevel_salesState_a2_q25 = quantile(taxLevel_salesState_a2, 0.25),
-		taxLevel_salesState_a2_q50 = quantile(taxLevel_salesState_a2, 0.50),
-		taxLevel_salesState_a2_q75 = quantile(taxLevel_salesState_a2, 0.75),
-		taxLevel_salesState_a2_q90 = quantile(taxLevel_salesState_a2, 0.90)
+		taxLevelReal_salesState_tot_a2_q10 = quantile(taxLevelReal_salesState_tot_a2, 0.1),
+		taxLevelReal_salesState_tot_a2_q25 = quantile(taxLevelReal_salesState_tot_a2, 0.25),
+		taxLevelReal_salesState_tot_a2_q50 = quantile(taxLevelReal_salesState_tot_a2, 0.50),
+		taxLevelReal_salesState_tot_a2_q75 = quantile(taxLevelReal_salesState_tot_a2, 0.75),
+		taxLevelReal_salesState_tot_a2_q90 = quantile(taxLevelReal_salesState_tot_a2, 0.90)
 	)
 	}
 
@@ -604,14 +681,14 @@ df_sim_quantiles
 fig_taxGrowth_box_a1 <- 
 df_sim %>% 
 	# filter(year == 15) %>% 
-	select(year, sim,  taxGrowth_PITState_a1, taxGrowth_salesState_a1) %>% 
+	select(year, sim,  growthReal_tot_PITState_a1, growthReal_tot_salesState_a1) %>% 
 	gather(var, value, -year, -sim) %>% 
-	mutate(var = factor(var, levels = c("taxGrowth_PITState_a1", "taxGrowth_salesState_a1"), 
-											labels = c("PIT dominant state", "Sales tax dominant state"))) %>% 
+	mutate(var = factor(var, levels = c("growthReal_tot_PITState_a1", "growthReal_tot_salesState_a1", "growthReal_tot_local_a1"), 
+											     labels = c("PIT dominant state", "Sales tax dominant state", "Local government"))) %>% 
 	ggplot(aes(x = var, y = 100 * value, fill = var)) + theme_bw() + RIG.themeLite() +
 	geom_violin() + 
 	geom_boxplot(width = 0.1, outlier.shape = NA, color = "white") + 
-	scale_fill_manual(values = c(RIG.blue, "deepskyblue1")) +
+	scale_fill_manual(values = c(RIG.blue, "deepskyblue1", RIG.yellow.dark)) +
 	scale_y_continuous(breaks = seq(-20, 20, 2)) + 
 	theme(legend.position = "none") + 
 	labs(title = "Distributions of simulated real tax growth \nfor the two stylized governments (Assumption 1)",
@@ -624,14 +701,14 @@ fig_taxGrowth_box_a1
 fig_taxGrowth_box_a2 <- 
 df_sim %>% 
 	#filter(year == 30) %>% 
-	select(year, sim,  taxGrowth_PITState_a2, taxGrowth_salesState_a2) %>% 
+	select(year, sim,  growthReal_tot_PITState_a2, growthReal_tot_salesState_a2) %>% 
 	gather(var, value, -year, -sim) %>% 
-	mutate(var = factor(var, levels = c("taxGrowth_PITState_a2", "taxGrowth_salesState_a2"), 
-											labels = c("PIT dominant state", "Sales tax dominant state"))) %>% 
+	mutate(var = factor(var, levels = c("growthReal_tot_PITState_a2", "growthReal_tot_salesState_a2", "growthReal_tot_local_a1"), 
+											labels = c("PIT dominant state", "Sales tax dominant state","Local government"))) %>% 
 	ggplot(aes(x = var, y = 100 * value, fill = var)) + theme_bw() + RIG.themeLite() +
 	geom_violin() + 
 	geom_boxplot(width = 0.1, outlier.shape = NA, color = "white") + 
-	scale_fill_manual(values = c(RIG.blue, "deepskyblue1")) +
+	scale_fill_manual(values = c(RIG.blue, "deepskyblue1", RIG.yellow.dark)) +
 	scale_y_continuous(breaks = seq(-20, 20, 2)) + 
 	theme(legend.position = "none") + 
 	labs(title = "Distributions of simulated real tax growth \nfor the two stylized governments (Assumption 2)",
@@ -645,11 +722,17 @@ ggsave("policyBrief_out/fig_taxGrowth_box_a2.png", fig_taxGrowth_box_a2, width =
 
 
 
+
+
+
+
+
+
 # Tax growth in recessions
 # Box plots
 df_sim %>% 
 	filter(recessionYear == TRUE) %>% 
-	select(year, sim,  taxGrowth_PITState_a1, taxGrowth_salesState_a1) %>% 
+	select(year, sim,  growthReal_tot_PITState_a1, growthReal_tot_salesState_a1) %>% 
 	gather(var, value, -year, -sim) %>% 
 	ggplot(aes(x = var, y = value)) + 
 	geom_boxplot(width = 0.5, outlier.shape = NA)
@@ -657,7 +740,7 @@ df_sim %>%
 
 df_sim %>% 
 	#filter(recessionYear == TRUE) %>% 
-	select(year, sim,  taxGrowth_PITState_a2, taxGrowth_salesState_a2) %>% 
+	select(year, sim,  growthReal_tot_PITState_a2, growthReal_tot_salesState_a2) %>% 
 	gather(var, value, -year, -sim) %>% 
 	ggplot(aes(x = var, y = value)) + 
 	geom_boxplot(width = 0.5, outlier.shape = NA)
@@ -668,19 +751,19 @@ df_sim %>%
 fig_taxLevel_PITState_a1 <- 
 df_sim_quantiles %>% 
 	select(year, 
-				 taxLevel_PITState_a1_q10,
-				 taxLevel_PITState_a1_q25,
-				 taxLevel_PITState_a1_q50,
-				 taxLevel_PITState_a1_q75,
-				 taxLevel_PITState_a1_q90
+				 taxLevelReal_PITState_tot_a1_q10,
+				 taxLevelReal_PITState_tot_a1_q25,
+				 taxLevelReal_PITState_tot_a1_q50,
+				 taxLevelReal_PITState_tot_a1_q75,
+				 taxLevelReal_PITState_tot_a1_q90
 				 ) %>% 
 	gather(var, value, -year) %>% 
 	mutate(var = factor(var, 
-											levels = c("taxLevel_PITState_a1_q90",
-											           "taxLevel_PITState_a1_q75",
-											           "taxLevel_PITState_a1_q50",
-											           "taxLevel_PITState_a1_q25",
-											           "taxLevel_PITState_a1_q10"), 
+											levels = c("taxLevelReal_PITState_tot_a1_q90",
+											           "taxLevelReal_PITState_tot_a1_q75",
+											           "taxLevelReal_PITState_tot_a1_q50",
+											           "taxLevelReal_PITState_tot_a1_q25",
+											           "taxLevelReal_PITState_tot_a1_q10"), 
 											labels = c("90th percentile",
 																 "75th percentile", 
 																 "50th percentile", 
@@ -690,29 +773,30 @@ df_sim_quantiles %>%
 	ggplot(aes(x = year, y = value, color = var)) +theme_bw() + RIG.themeLite() +
 	geom_line() + 
 	geom_point() + 
-	coord_cartesian(ylim = c(1, 5)) + 
+	coord_cartesian(ylim = c(1, 3.5)) + 
 	labs(title = "Distribution of simulated tax revenue relative to year 0 \n PIT dominant state (Assumption 1)",
 		   x  = "Year",
 			 y  = "Tax revenue relative to year 0",
 			 color = NULL)
-	
+fig_taxLevel_PITState_a1	
+
 
 fig_taxLevel_salesState_a1 <-
 df_sim_quantiles %>% 
 	select(year, 
-				 taxLevel_salesState_a1_q10,
-				 taxLevel_salesState_a1_q25,
-				 taxLevel_salesState_a1_q50,
-				 taxLevel_salesState_a1_q75,
-				 taxLevel_salesState_a1_q90
+				 taxLevelReal_salesState_tot_a1_q10,
+				 taxLevelReal_salesState_tot_a1_q25,
+				 taxLevelReal_salesState_tot_a1_q50,
+				 taxLevelReal_salesState_tot_a1_q75,
+				 taxLevelReal_salesState_tot_a1_q90
 	) %>% 
 	gather(var, value, -year) %>% 
 	mutate(var = factor(var, 
-											levels = c("taxLevel_salesState_a1_q90",
-																 "taxLevel_salesState_a1_q75",
-																 "taxLevel_salesState_a1_q50",
-																 "taxLevel_salesState_a1_q25",
-																 "taxLevel_salesState_a1_q10"), 
+											levels = c("taxLevelReal_salesState_tot_a1_q90",
+																 "taxLevelReal_salesState_tot_a1_q75",
+																 "taxLevelReal_salesState_tot_a1_q50",
+																 "taxLevelReal_salesState_tot_a1_q25",
+																 "taxLevelReal_salesState_tot_a1_q10"), 
 											labels = c("90th percentile",
 																 "75th percentile", 
 																 "50th percentile", 
@@ -722,29 +806,29 @@ df_sim_quantiles %>%
 	ggplot(aes(x = year, y = value, color = var)) +theme_bw() + RIG.themeLite() +
 	geom_line() + 
 	geom_point() + 
-	coord_cartesian(ylim = c(1, 5)) + 
+	coord_cartesian(ylim = c(1, 3.5)) + 
 	labs(title = "Distribution of simulated tax revenue relative to year 0 \n sales tax dominant state (Assumption 1)",
 		   x  = "Year",
 			 y  = "Tax revenue relative to year 0",
 			 color = NULL)
-
+fig_taxLevel_salesState_a1
 
 fig_taxLevel_PITState_a2 <-
 df_sim_quantiles %>% 
 	select(year, 
-				 taxLevel_PITState_a2_q10,
-				 taxLevel_PITState_a2_q25,
-				 taxLevel_PITState_a2_q50,
-				 taxLevel_PITState_a2_q75,
-				 taxLevel_PITState_a2_q90
+				 taxLevelReal_PITState_tot_a2_q10,
+				 taxLevelReal_PITState_tot_a2_q25,
+				 taxLevelReal_PITState_tot_a2_q50,
+				 taxLevelReal_PITState_tot_a2_q75,
+				 taxLevelReal_PITState_tot_a2_q90
 	) %>% 
 	gather(var, value, -year) %>% 
 	mutate(var = factor(var, 
-											levels = c("taxLevel_PITState_a2_q90",
-																 "taxLevel_PITState_a2_q75",
-																 "taxLevel_PITState_a2_q50",
-																 "taxLevel_PITState_a2_q25",
-																 "taxLevel_PITState_a2_q10"), 
+											levels = c("taxLevelReal_PITState_tot_a2_q90",
+																 "taxLevelReal_PITState_tot_a2_q75",
+																 "taxLevelReal_PITState_tot_a2_q50",
+																 "taxLevelReal_PITState_tot_a2_q25",
+																 "taxLevelReal_PITState_tot_a2_q10"), 
 											labels = c("90th percentile",
 																 "75th percentile", 
 																 "50th percentile", 
@@ -754,29 +838,29 @@ df_sim_quantiles %>%
 	ggplot(aes(x = year, y = value, color = var)) +theme_bw() + RIG.themeLite() +
 	geom_line() + 
 	geom_point() + 
-	coord_cartesian(ylim = c(1, 5)) + 
+	coord_cartesian(ylim = c(1, 3.5)) + 
 	labs(title = "Distribution of simulated tax revenue relative to year 0 \n PIT dominant state (Assumption 2)",
 		   x  = "Year",
 			 y  = "Tax revenue relative to year 0",
 			 color = NULL)
-
+fig_taxLevel_PITState_a2
 
 fig_taxLevel_salesState_a2 <-
 df_sim_quantiles %>% 
 	select(year, 
-				 taxLevel_salesState_a2_q10,
-				 taxLevel_salesState_a2_q25,
-				 taxLevel_salesState_a2_q50,
-				 taxLevel_salesState_a2_q75,
-				 taxLevel_salesState_a2_q90
+				 taxLevelReal_salesState_tot_a2_q10,
+				 taxLevelReal_salesState_tot_a2_q25,
+				 taxLevelReal_salesState_tot_a2_q50,
+				 taxLevelReal_salesState_tot_a2_q75,
+				 taxLevelReal_salesState_tot_a2_q90
 	) %>% 
 	gather(var, value, -year) %>% 
 	mutate(var = factor(var, 
-											levels = c("taxLevel_salesState_a2_q90",
-																 "taxLevel_salesState_a2_q75",
-																 "taxLevel_salesState_a2_q50",
-																 "taxLevel_salesState_a2_q25",
-																 "taxLevel_salesState_a2_q10"), 
+											levels = c("taxLevelReal_salesState_tot_a2_q90",
+																 "taxLevelReal_salesState_tot_a2_q75",
+																 "taxLevelReal_salesState_tot_a2_q50",
+																 "taxLevelReal_salesState_tot_a2_q25",
+																 "taxLevelReal_salesState_tot_a2_q10"), 
 											labels = c("90th percentile",
 																 "75th percentile", 
 																 "50th percentile", 
@@ -786,12 +870,12 @@ df_sim_quantiles %>%
 	ggplot(aes(x = year, y = value, color = var)) +theme_bw() + RIG.themeLite() +
 	geom_line() + 
 	geom_point() + 
-	coord_cartesian(ylim = c(1, 5)) + 
+	coord_cartesian(ylim = c(1, 3.5)) + 
 	labs(title = "Distribution of simulated tax revenue relative to year 0 \n PIT dominant state (Assumption 2)",
 		   x  = "Year",
 			 y  = "Tax revenue relative to year 0",
 			 color = NULL)
-
+fig_taxLevel_salesState_a2
 
 
 
@@ -814,11 +898,11 @@ ggsave("policyBrief_out/fig_taxLevel_salesState_a2.png", fig_taxLevel_salesState
 # Median standared deviation, Median average growth
 df_sim %>% 
 	group_by(sim) %>% 
-	summarise(avg_taxGrowth_PITState_a1 = mean(taxGrowth_PITState_a1),
-						sd_taxGrowth_PITState_a1  = sd(taxGrowth_PITState_a1),
+	summarise(avg_taxGrowth_PITState_a1 = mean(growthReal_tot_PITState_a1),
+						sd_taxGrowth_PITState_a1  = sd(growthReal_tot_PITState_a1),
 						
-						avg_taxGrowth_salesState_a1 = mean(taxGrowth_salesState_a1),
-						sd_taxGrowth_salesState_a1  = sd(taxGrowth_salesState_a1)
+						avg_taxGrowth_salesState_a1 = mean(growthReal_tot_salesState_a1),
+						sd_taxGrowth_salesState_a1  = sd(growthReal_tot_salesState_a1)
 						) %>% 
 	summarise(Medavg_taxGrowth_PITState_a1 = median(avg_taxGrowth_PITState_a1),
 						Medsd_taxGrowth_PITState_a1  = median(sd_taxGrowth_PITState_a1),
@@ -829,37 +913,37 @@ df_sim %>%
 						
 df_sim %>% 
 	group_by(sim) %>% 
-	summarise(avg_taxGrowth_PITState_a2 = mean(taxGrowth_PITState_a2),
-						sd_taxGrowth_PITState_a2  = sd(taxGrowth_PITState_a2),
+	summarise(avg_taxGrowth_PITState_a2 = mean(growthReal_tot_PITState_a2),
+						sd_taxGrowth_PITState_a2  = sd(growthReal_tot_PITState_a2),
 						
-						avg_taxGrowth_salesState_a2 = mean(taxGrowth_salesState_a2),
-						sd_taxGrowth_salesState_a2  = sd(taxGrowth_salesState_a2)
+						avg_taxGrowth_salesState_a2 = mean(growthReal_tot_salesState_a2),
+						sd_taxGrowth_salesState_a2  = sd(growthReal_tot_salesState_a2)
 	) %>% 
 	summarise(Medavg_taxGrowth_PITState_a2 = median(avg_taxGrowth_PITState_a2),
 						Medsd_taxGrowth_PITState_a2  = median(sd_taxGrowth_PITState_a2),
 						
 						Medavg_taxGrowth_salesState_a2 = median(avg_taxGrowth_salesState_a2),
 						Medsd_taxGrowth_salesState_a2  = median(sd_taxGrowth_salesState_a2)
-	)						
+	)			
 
 # Probability of revenue dropping by more than, 3%, 5%, 10% in any years by year 30
 df_prob <- 
 df_sim %>% 
 	group_by(sim) %>% 
-	mutate(tax_drop3pct_PITState_a1   = ifelse(taxGrowth_PITState_a1   <= -0.03, T, F) %>% cumany,
-				 tax_drop3pct_salesState_a1 = ifelse(taxGrowth_salesState_a1 <= -0.03, T, F) %>% cumany,
-				 tax_drop3pct_PITState_a2   = ifelse(taxGrowth_PITState_a2   <= -0.03, T, F) %>% cumany,
-				 tax_drop3pct_salesState_a2 = ifelse(taxGrowth_salesState_a2 <= -0.03, T, F) %>% cumany,
+	mutate(tax_drop3pct_PITState_a1   = ifelse(growthReal_tot_PITState_a1   <= -0.03, T, F) %>% cumany,
+				 tax_drop3pct_salesState_a1 = ifelse(growthReal_tot_salesState_a1 <= -0.03, T, F) %>% cumany,
+				 tax_drop3pct_PITState_a2   = ifelse(growthReal_tot_PITState_a2   <= -0.03, T, F) %>% cumany,
+				 tax_drop3pct_salesState_a2 = ifelse(growthReal_tot_salesState_a2 <= -0.03, T, F) %>% cumany,
 				 
-				 tax_drop5pct_PITState_a1   = ifelse(taxGrowth_PITState_a1   <= -0.05, T, F) %>% cumany,
-				 tax_drop5pct_salesState_a1 = ifelse(taxGrowth_salesState_a1 <= -0.05, T, F) %>% cumany,
-				 tax_drop5pct_PITState_a2   = ifelse(taxGrowth_PITState_a2   <= -0.05, T, F) %>% cumany,
-				 tax_drop5pct_salesState_a2 = ifelse(taxGrowth_salesState_a2 <= -0.03, T, F) %>% cumany,
+				 tax_drop5pct_PITState_a1   = ifelse(growthReal_tot_PITState_a1   <= -0.05, T, F) %>% cumany,
+				 tax_drop5pct_salesState_a1 = ifelse(growthReal_tot_salesState_a1 <= -0.05, T, F) %>% cumany,
+				 tax_drop5pct_PITState_a2   = ifelse(growthReal_tot_PITState_a2   <= -0.05, T, F) %>% cumany,
+				 tax_drop5pct_salesState_a2 = ifelse(growthReal_tot_salesState_a2 <= -0.03, T, F) %>% cumany,
 				 
-				 tax_drop10pct_PITState_a1   = ifelse(taxGrowth_PITState_a1   <= -0.10, T, F) %>% cumany,
-				 tax_drop10pct_salesState_a1 = ifelse(taxGrowth_salesState_a1 <= -0.10, T, F) %>% cumany,
-				 tax_drop10pct_PITState_a2   = ifelse(taxGrowth_PITState_a2   <= -0.10, T, F) %>% cumany,
-				 tax_drop10pct_salesState_a2 = ifelse(taxGrowth_salesState_a2 <= -0.10, T, F) %>% cumany
+				 tax_drop10pct_PITState_a1   = ifelse(growthReal_tot_PITState_a1   <= -0.10, T, F) %>% cumany,
+				 tax_drop10pct_salesState_a1 = ifelse(growthReal_tot_salesState_a1 <= -0.10, T, F) %>% cumany,
+				 tax_drop10pct_PITState_a2   = ifelse(growthReal_tot_PITState_a2   <= -0.10, T, F) %>% cumany,
+				 tax_drop10pct_salesState_a2 = ifelse(growthReal_tot_salesState_a2 <= -0.10, T, F) %>% cumany
 				 ) %>% 
 	group_by(year) %>% 
 	summarize(tax_drop3pct_PITState_a1   = sum(tax_drop3pct_PITState_a1)/n(),
@@ -889,7 +973,7 @@ df_prob %>%
 	ggplot(aes(x = year, y = 100*value, color = var)) + theme_bw() + RIG.themeLite() + 
 	geom_line() + 
 	geom_point() + 
-	coord_cartesian(ylim = c(0, 70)) + 
+	coord_cartesian(ylim = c(0, 100)) + 
 	scale_color_manual(values = c(RIG.blue, "deepskyblue1")) + 
 	scale_x_continuous(breaks = seq(0, 30, 5)) + 
 	scale_y_continuous(breaks = seq(0, 100,5)) + 
@@ -912,7 +996,7 @@ df_prob %>%
 	geom_line() + 
 	geom_point()+
 	theme(legend.position = "bottom") + 
-	coord_cartesian(ylim = c(0, 70)) + 
+	coord_cartesian(ylim = c(0, 100)) + 
 	scale_color_manual(values = c(RIG.blue, "deepskyblue1")) +
   scale_x_continuous(breaks = seq(0, 30, 5)) + 
 	scale_y_continuous(breaks = seq(0, 100,5)) + 
@@ -934,7 +1018,7 @@ fig_drop3pct_a2 <-
 	ggplot(aes(x = year, y = 100*value, color = var)) + theme_bw() + RIG.themeLite() + 
 	geom_line() + 
 	geom_point() + 
-	coord_cartesian(ylim = c(0, 70)) + 
+	coord_cartesian(ylim = c(0, 100)) + 
 	scale_color_manual(values = c(RIG.blue, "deepskyblue1")) + 
 	scale_x_continuous(breaks = seq(0, 30, 5)) + 
 	scale_y_continuous(breaks = seq(0, 100,5)) + 
@@ -957,7 +1041,7 @@ fig_drop5pct_a2 <-
 	geom_line() + 
 	geom_point()+
 	theme(legend.position = "bottom") + 
-	coord_cartesian(ylim = c(0, 70)) + 
+	coord_cartesian(ylim = c(0, 100)) + 
 	scale_color_manual(values = c(RIG.blue, "deepskyblue1")) +
 	scale_x_continuous(breaks = seq(0, 30, 5)) + 
 	scale_y_continuous(breaks = seq(0, 100,5)) + 
@@ -1013,14 +1097,14 @@ df_sim %<>%
 df_sim %>% 
 	filter(recessionYear == TRUE) %>% 
 	select(sim, year, recessionYear, recession_num, 
-				 taxGrowth_PITState_a1, taxGrowth_salesState_a1,
-				 taxGrowth_PITState_a2, taxGrowth_salesState_a2) %>% 
+				 growthReal_tot_PITState_a1, growthReal_tot_salesState_a1,
+				 growthReal_tot_PITState_a2, growthReal_tot_salesState_a2) %>% 
 	group_by(sim, recession_num) %>% 
-	summarise(chgRec_PITState_a1   = prod(1 + taxGrowth_PITState_a1) - 1,
-						chgRec_salesState_a1 = prod(1 + taxGrowth_salesState_a1) - 1,
+	summarise(chgRec_PITState_a1   = prod(1 + growthReal_tot_PITState_a1) - 1,
+						chgRec_salesState_a1 = prod(1 + growthReal_tot_salesState_a1) - 1,
 						
-						chgRec_PITState_a2   = prod(1 + taxGrowth_PITState_a2) - 1,
-						chgRec_salesState_a2 = prod(1 + taxGrowth_salesState_a2) - 1
+						chgRec_PITState_a2   = prod(1 + growthReal_tot_PITState_a2) - 1,
+						chgRec_salesState_a2 = prod(1 + growthReal_tot_salesState_a2) - 1
 						) %>% 
 	group_by(sim) %>% 
 	summarise(
@@ -1057,9 +1141,27 @@ ggsave("policyBrief_out/fig_drop5pct_a2.png",   fig_drop5pct_a2, width = 8*0.8, 
 
 
 
-
-
-
+# 
+# # Growth rate of total tax revenue
+# growthReal_tot_PITState_a1   = growthReal_PIT_a1 * taxShare_PITState["share_PIT"] + growthReal_salesGen_a1 * taxShare_PITState["share_salesGen"] + 
+# 	growthReal_salesSel_a1 * taxShare_PITState["share_salesSel"] + growthReal_other_a1 * taxShare_PITState["share_other"] + growthReal_propertyLoc_a1 * taxShare_PITState["share_propertyLoc"],
+# 
+# growthReal_tot_salesState_a1 = growthReal_PIT_a1 * taxShare_salesState["share_PIT"] + growthReal_salesGen_a1 * taxShare_salesState["share_salesGen"] + 
+# 	growthReal_salesSel_a1 * taxShare_salesState["share_salesSel"] + growthReal_other_a1 * taxShare_salesState["share_other"] + growthReal_propertyLoc_a1 * taxShare_salesState["share_propertyLoc"],
+# 
+# growthReal_tot_local_a1      = growthReal_PIT_a1 * taxShare_local["share_PIT"] + growthReal_salesGen_a1 * taxShare_local["share_salesGen"] + 
+# 	growthReal_salesSel_a1 * taxShare_local["share_salesSel"] + growthReal_other_a1 * taxShare_local["share_other"] + growthReal_propertyLoc_a1 * taxShare_local["share_propertyLoc"],
+# 
+# 
+# growthReal_tot_PITState_a2   = growthReal_PIT_a2 * taxShare_PITState["share_PIT"] + growthReal_salesGen_a2 * taxShare_PITState["share_salesGen"] + 
+# 	growthReal_salesSel_a2 * taxShare_PITState["share_salesSel"] + growthReal_other_a2 * taxShare_PITState["share_other"] + growthReal_propertyLoc_a2 * taxShare_PITState["share_propertyLoc"],
+# 
+# growthReal_tot_salesState_a2 = growthReal_PIT_a2 * taxShare_salesState["share_PIT"] + growthReal_salesGen_a2 * taxShare_salesState["share_salesGen"] + 
+# 	growthReal_salesSel_a2 * taxShare_salesState["share_salesSel"] + growthReal_other_a2 * taxShare_salesState["share_other"] + growthReal_propertyLoc_a2 * taxShare_salesState["share_propertyLoc"],
+# 
+# growthReal_tot_local_a2      = growthReal_PIT_a2 * taxShare_local["share_PIT"] + growthReal_salesGen_a2 * taxShare_local["share_salesGen"] + 
+# 	growthReal_salesSel_a2 * taxShare_local["share_salesSel"] + growthReal_other_a2 * taxShare_local["share_other"] + growthReal_propertyLoc_a2 * taxShare_local["share_propertyLoc"]
+# 
 
 
 
