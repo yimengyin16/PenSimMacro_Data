@@ -301,6 +301,7 @@ df_stock_q$dl_gdp_o
 
 
 
+
 #***********************************************************************************
 #                 Global parameters for simulation                    ####
 #***********************************************************************************
@@ -352,44 +353,138 @@ replicate(10, rmarkovchain(n = 4*30, object = mc_gdp, t0 = '1'))
 #             Paramters of gdp growth, stock and bond returns         ####
 #***********************************************************************************
 
-# Stock: expansion
-s.mean_0 <- 0.032
-s.std_0  <- 0.069 
+# # Stock: expansion
+# s.mean_0 <- 0.032
+# s.std_0  <- 0.069 
+# 
+# # Stock: recession
+# s.mean_1 <- -0.014
+# s.std_1  <- 0.119
+# 
+# # Bond
+# b.mean  <- 0.016 #0.035/4
+# b.std   <- 0.051 #0.04/2
+# 
+# # Correlation between error terms(deviation from mean) of stock and bond returns
+# # (Calibration needed)
+# # Goal is to find a rho that can make the correlation between the simulated
+# # annual stock returns and annual bond returns (both calculated from quarterly returns)
+# # match the target value
+# rho <- 0.15 
+# 
+# # GDP expansion 
+# gdp.mean_0 <- 0.0095
+# gdp.std_0  <- 5.463e-05^0.5 # 0.007391211
+# 
+# # GDP recession
+# gdp.mean_1 <- -0.0055
+# gdp.std_1  <- 5.463e-05^0.5 # 0.007391211
 
-# Stock: recession
-s.mean_1 <- -0.014
-s.std_1  <- 0.119
 
-# Bond
-b.mean  <- 0.016 #0.035/4
-b.std   <- 0.051 #0.04/2
 
-# Correlation between error terms(deviation from mean) of stock and bond returns
-# (Calibration needed)
-# Goal is to find a rho that can make the correlation between the simulated
-# annual stock returns and annual bond returns (both calculated from quarterly returns)
-# match the target value
-rho <- 0.15 
+simInputs_historical <- 
+	list(
+		nyear = 30,
+		nsim  = 2000,
+		
+		# Markov Chain object for GDP
+		mc_gdp = mc_gdp,
+		
+		# Stock: expansion
+		s.mean_0 = 0.032,
+		s.std_0  = 0.069 ,
+		
+		# Stock: recession
+		s.mean_1 = -0.014,
+		s.std_1  = 0.119,
+		
+		# Bond
+		b.mean  = 0.016, #0.035/4
+		b.std   = 0.051, #0.04/2
+		
+		# Correlation between error terms(deviation from mean) of stock and bond returns
+		# (Calibration needed)
+		# Goal is to find a rho that can make the correlation between the simulated
+		# annual stock returns and annual bond returns (both calculated from quarterly returns)
+		# match the target value
+		rho = 0.15, 
+		
+		# GDP expansion 
+		gdp.mean_0 = 0.0095,
+		gdp.std_0  = 5.463e-05^0.5, # 0.007391211
+		
+		# GDP recession
+		gdp.mean_1 = -0.0055,
+		gdp.std_1  = 5.463e-05^0.5 # 0.007391211
+		
+	)
+	
 
-# GDP expansion 
-gdp.mean_0 <- 0.0095
-gdp.std_0  <- 5.463e-05^0.5 # 0.007391211
+simInputs_forward <- 
+	list(
+		nyear = 30,
+		nsim  = 2000,
+		
+		# Markov Chain object for GDP
+		mc_gdp = mc_gdp,
+		
+		# Stock: expansion
+		s.mean_0 = 0.032 - 0.00656,
+		s.std_0  = 0.069 ,
+		
+		# Stock: recession
+		s.mean_1 = -0.014 - 0.00656,
+		s.std_1  = 0.119,
+		
+		# Bond
+		b.mean  = 0.009086, # 
+		b.std   = 0.02, # 0.04/2
+		
+		# Correlation between error terms(deviation from mean) of stock and bond returns
+		# (Calibration needed)
+		# Goal is to find a rho that can make the correlation between the simulated
+		# annual stock returns and annual bond returns (both calculated from quarterly returns)
+		# match the target value
+		rho = 0.15, 
+		
+		# GDP expansion 
+		gdp.mean_0 = 0.0095 - 0.002786, # 0.006646
+		gdp.std_0  = 5.463e-05^0.5,     # 0.007391211
+		
+		# GDP recession
+		gdp.mean_1 = -0.0055 - 0.002786, # 0.008354
+		gdp.std_1  = 5.463e-05^0.5       # 0.007391211
+	)
 
-# GDP recession
-gdp.mean_1 <- -0.0055
-gdp.std_1  <- 5.463e-05^0.5 # 0.007391211
+# GDP 
+  # Target: 1.019242^0.25 - 1 = 0.004776
+  # simulated based on historical data:0.007562
+  # adjustment: 0.007562 - 0.004776 = 0.002786
+
+# Stock:
+  # Target:  1.08145^0.25 - 1 =  0.01976854
+  # current: 1.1095593^0.25 - 1 = 0.02633
+  # adjustment: 0.00656146
 
 
 #***********************************************************************************
 #     Simulating quarterly GDP growth and asset returns with regime-switching   ####
 #***********************************************************************************
 
+# simInputs <- simInputs_historical
+# sim_name  <- "sim_results_historical"
+
+simInputs <- simInputs_forward
+sim_name  <- "sim_results_forward"
+
+
+
 
 set.seed(11)
 {
 	
 # Generating GDP regimes	
-sim_gdp_regimes <- replicate(nsim, rmarkovchain(n = nyear * 4, object = mc_gdp, t0 = '0') %>% as.numeric())
+sim_gdp_regimes <- replicate(simInputs$nsim, rmarkovchain(n = simInputs$nyear * 4, object = simInputs$mc_gdp, t0 = '0') %>% as.numeric())
 
 	
 # Generating of stock and bond returns (approach 1)
@@ -419,20 +514,20 @@ sim_gdp_regimes <- replicate(nsim, rmarkovchain(n = nyear * 4, object = mc_gdp, 
 	
 # Generating of stock and bond returns (approach 2, based on standard multivariate normal distribution)
 
-sim_errorTerms_stdNormal <- replicate(nsim, mvrnorm(nyear*4, mu = c(0, 0), Sigma = matrix(c(1, rho, rho, 1), 2))) 
+sim_errorTerms_stdNormal <- replicate(simInputs$nsim, mvrnorm(simInputs$nyear*4, mu = c(0, 0), Sigma = matrix(c(1, simInputs$rho, simInputs$rho, 1), 2))) 
 
-sim_stockreturn_0 <- sim_errorTerms_stdNormal[,1,]*s.std_0 + s.mean_0
-sim_stockreturn_1 <- sim_errorTerms_stdNormal[,1,]*s.std_1 + s.mean_1
+sim_stockreturn_0 <- sim_errorTerms_stdNormal[,1,]*simInputs$s.std_0 + simInputs$s.mean_0
+sim_stockreturn_1 <- sim_errorTerms_stdNormal[,1,]*simInputs$s.std_1 + simInputs$s.mean_1
 
-sim_bondreturn <- sim_errorTerms_stdNormal[,2,]*b.std + b.mean
+sim_bondreturn <- sim_errorTerms_stdNormal[,2,]*simInputs$b.std + simInputs$b.mean
 
 # corr.test(cbind(as.vector(sim_bondreturn), as.vector(sim_stockreturn_1))) %>% print(short = F)
 # sim_stockreturn_0 <- replicate(nsim, rnorm(nyear*4, s.mean_0, s.std_0))
 # sim_stockreturn_1 <- replicate(nsim, rnorm(nyear*4, s.mean_1, s.std_1))
 
 #  Simulating GDP growth
-sim_gdp_0 <- replicate(nsim, rnorm(nyear*4, gdp.mean_0, gdp.std_0))
-sim_gdp_1 <- replicate(nsim, rnorm(nyear*4, gdp.mean_1, gdp.std_1))
+sim_gdp_0 <- replicate(simInputs$nsim, rnorm(simInputs$nyear*4, simInputs$gdp.mean_0, simInputs$gdp.std_0))
+sim_gdp_1 <- replicate(simInputs$nsim, rnorm(simInputs$nyear*4, simInputs$gdp.mean_1, simInputs$gdp.std_1))
 
 # Compute stock returns with regime-switching
 sim_stockreturn <- (sim_gdp_regimes == 0) * sim_stockreturn_0 + (sim_gdp_regimes == 1) * sim_stockreturn_1
@@ -517,21 +612,37 @@ df_sim_gdp_regimes_y <-
 	summarise(recession_nqtr = sum(regime))
 
 
-
-save(
-	df_sim_stockreturn_q,
-	df_sim_bondreturn_q,
-	df_sim_gdp_q,
-	df_sim_gdp_regimes_q,
+sim_results <- list(
+	df_sim_stockreturn_q = df_sim_stockreturn_q,
+	df_sim_bondreturn_q  = df_sim_bondreturn_q,
+	df_sim_gdp_q         = df_sim_gdp_q,
+	df_sim_gdp_regimes_q = df_sim_gdp_regimes_q,
 	
 	
-	df_sim_stockreturn_y,
-	df_sim_bondreturn_y,
-	df_sim_gdp_y,
-	df_sim_gdp_regimes_y,
-	file = "policyBrief_out/simulation_MS1.RData")
+	df_sim_stockreturn_y= df_sim_stockreturn_y,
+	df_sim_bondreturn_y = df_sim_bondreturn_y,
+	df_sim_gdp_y        = df_sim_gdp_y,
+	df_sim_gdp_regimes_y= df_sim_gdp_regimes_y
+)
 
 
+assign(sim_name, sim_results)
+
+
+# save(df_sim_stockreturn_q,
+# 	   df_sim_bondreturn_q,
+# 	   df_sim_gdp_q,
+# 	   df_sim_gdp_regimes_q,
+# 	   
+# 	   
+# 	   df_sim_stockreturn_y,
+# 	   df_sim_bondreturn_y,
+# 	   df_sim_gdp_y,
+# 	   df_sim_gdp_regimes_y,
+save(sim_results,
+	   file = paste0("policyBrief_out/", sim_name, ".RData"))
+
+sim_name
 
 
 
@@ -540,29 +651,29 @@ save(
 # 
 # ## Check annual returns and growth
 # 
-# # annual stock returns, all sims
-# df_sim_stockreturn_y$return_y	%>% mean # 10.8% mean annual return (quarterly return compounded)
-# df_sim_stockreturn_y$return_y	%>% sd   # 17.2% std
-# df_sim_stockreturn_y$return_y	%>% describe  # ~0.57 kurtosis, higher than historical returns
-# df_sim_stockreturn_y$return_y %>% hist(seq(-0.65, 1.17, 0.02))
-# 
-# 
-# # annual bond returns, all sims
-# df_sim_bondreturn_y$return_y	%>% mean # ~3.5% mean annual return (quarterly return compounded)
-# df_sim_bondreturn_y$return_y	%>% sd   # ~4.1% std
-# df_sim_bondreturn_y$return_y	%>% describe  # very small skewness and kurtosis
-# df_sim_bondreturn_y$return_y %>%  hist(seq(-0.25, 0.25, 0.01))
-# 
-# 
-# # annual gdp returns, all sims
-# df_sim_gdp_y$return_y	%>% mean # ~3.05% mean annual return (quarterly return compounded)
-# df_sim_gdp_y$return_y	%>% sd   # ~2.1% std (larger than std of shocks due to regime-switching)
-# df_sim_gdp_y$return_y	%>% describe  # heavily skewed, 0.8 kurtosis
-# df_sim_gdp_y$return_y %>% hist
-# 
-# 
-# cor(df_sim_stockreturn_y$return_y,df_sim_bondreturn_y$return_y)
-# 
+# annual stock returns, all sims
+df_sim_stockreturn_y$return_y	%>% mean # 10.8% mean annual return (quarterly return compounded)
+df_sim_stockreturn_y$return_y	%>% sd   # 17.2% std
+df_sim_stockreturn_y$return_y	%>% describe  # ~0.57 kurtosis, higher than historical returns
+df_sim_stockreturn_y$return_y %>% hist(seq(-0.65, 1.17, 0.02))
+
+
+# annual bond returns, all sims
+df_sim_bondreturn_y$return_y	%>% mean # ~3.5% mean annual return (quarterly return compounded)
+df_sim_bondreturn_y$return_y	%>% sd   # ~4.1% std
+df_sim_bondreturn_y$return_y	%>% describe  # very small skewness and kurtosis
+df_sim_bondreturn_y$return_y %>%  hist(seq(-0.25, 0.25, 0.01))
+
+
+# annual gdp returns, all sims
+df_sim_gdp_y$return_y	%>% mean # ~3.05% mean annual return (quarterly return compounded)
+df_sim_gdp_y$return_y	%>% sd   # ~2.2% std (larger than std of shocks due to regime-switching)
+df_sim_gdp_y$return_y	%>% describe  # heavily skewed, 0.8 kurtosis
+df_sim_gdp_y$return_y %>% hist
+
+
+cor(df_sim_stockreturn_y$return_y,df_sim_bondreturn_y$return_y)
+
 # 
 # df_sim_gdp_y
 # 

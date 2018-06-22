@@ -196,16 +196,16 @@ get_geoReturn <- function(x) prod(1 + x)^(1/length(x)) - 1
 infl_hist <- 0.022 #(CBO, GDP price index: 1987-2016)
 infl_proj <- 0.02  #(CBO, GDP price index: 2017-2047)
 
-infl <- infl_hist
+infl <- infl_proj
 
 
 # Loading simulation outputs:
 
-load("policyBrief_out/sim_results_historical.RData")
-sim_results <- sim_results_historical
+# load("policyBrief_out/sim_results_historical.RData")
+# sim_results <- sim_results_historical
 
 load("policyBrief_out/sim_results_forward.RData")
-sim_results <- sim_results_forward
+#sim_results <- sim_results_forward
 
 
 
@@ -224,8 +224,8 @@ df_sim <-
 	left_join(sim_results$df_sim_bondreturn_y  %>% rename(bondreturn  = return_y)) %>% 
 	ungroup() %>% 
 	mutate(sim = str_extract(sim, "\\d+") %>% as.numeric) %>% 
-	mutate(stockreturn_real = stockreturn - infl,
-				 bondreturn        = bondreturn  - infl,
+	mutate(stockreturn_real = stockreturn  - infl,
+				 bondreturn_real        = bondreturn  - infl,
 				 recessionYear = recession_nqtr != 0 )
 
 df_sim %>% head
@@ -236,16 +236,20 @@ df_sim %>% head
 sim_geoMeans <- 
 	df_sim %>% 
 	group_by(sim) %>% 
-	summarise(gdp_chg_geoMean = get_geoReturn(gdp_chg),
-						stockReturn_real_geoMean = get_geoReturn(stockreturn_real))
+	summarise(gdp_chg_geoMean          = get_geoReturn(gdp_chg),
+						stockReturn_real_geoMean = get_geoReturn(stockreturn_real),
+						bondReturn_real_geoMean  = get_geoReturn(bondreturn_real))
 
-trend_growth_gdp   <- sim_geoMeans$gdp_chg_geoMean %>% mean
+trend_growth_gdp        <- sim_geoMeans$gdp_chg_geoMean %>% mean
 trend_growth_stock_real <- sim_geoMeans$stockReturn_real_geoMean %>% mean
+trend_growth_bond_real  <- sim_geoMeans$bondReturn_real_geoMean %>% mean
+
 
 trend_growth_gdp 
 trend_growth_stock_real
+trend_growth_bond_real
 
-
+df_sim$stockreturn %>% mean
 
 
 #**********************************************************************
@@ -521,6 +525,9 @@ df_sim %<>%
 	
 #df_sim %>% select(year, taxLevel_PITState_a1)
 	
+# Save results
+
+save(df_sim, file = "policyBrief_out/df_sim_forward.RData")
 
 
 #**********************************************************************
@@ -534,9 +541,9 @@ rec_year
 
 fig_singleSim_GDP <- 
 df_sim %>% filter(sim == 2) %>% 
-	select(sim, year, gdp_chg, stockreturn) %>% 
+	select(sim, year, gdp_chg, stockreturn_real) %>% 
 	gather(var, value, -sim, - year) %>% 
-	mutate(var = factor(var, levels = c("gdp_chg", "stockreturn"), labels = c("Real GDP growth", "Real stock return"))) %>% 
+	mutate(var = factor(var, levels = c("gdp_chg", "stockreturn_real"), labels = c("Real GDP growth", "Real stock return"))) %>% 
 	ggplot(aes(x = year, y = 100 * value, color = var)) + theme_bw() + RIG.themeLite() + 
 	geom_line() + 
 	geom_point() + 
@@ -550,8 +557,6 @@ df_sim %>% filter(sim == 2) %>%
 			 color = NULL) + 
 	theme(legend.position = "bottom")
 fig_singleSim_GDP
-
-
 
 
 
@@ -779,7 +784,7 @@ df_sim_quantiles %>%
 	ggplot(aes(x = year, y = value, color = var)) +theme_bw() + RIG.themeLite() +
 	geom_line() + 
 	geom_point() + 
-	coord_cartesian(ylim = c(1, 3.5)) + 
+	coord_cartesian(ylim = c(1, 2.5)) + 
 	labs(title = "Distribution of simulated tax revenue relative to year 0 \n PIT dominant state (Assumption 1)",
 		   x  = "Year",
 			 y  = "Tax revenue relative to year 0",
@@ -812,7 +817,7 @@ df_sim_quantiles %>%
 	ggplot(aes(x = year, y = value, color = var)) +theme_bw() + RIG.themeLite() +
 	geom_line() + 
 	geom_point() + 
-	coord_cartesian(ylim = c(1, 3.5)) + 
+	coord_cartesian(ylim = c(1, 2.5)) + 
 	labs(title = "Distribution of simulated tax revenue relative to year 0 \n sales tax dominant state (Assumption 1)",
 		   x  = "Year",
 			 y  = "Tax revenue relative to year 0",
@@ -844,7 +849,7 @@ df_sim_quantiles %>%
 	ggplot(aes(x = year, y = value, color = var)) +theme_bw() + RIG.themeLite() +
 	geom_line() + 
 	geom_point() + 
-	coord_cartesian(ylim = c(1, 3.5)) + 
+	coord_cartesian(ylim = c(1, 2.5)) + 
 	labs(title = "Distribution of simulated tax revenue relative to year 0 \n PIT dominant state (Assumption 2)",
 		   x  = "Year",
 			 y  = "Tax revenue relative to year 0",
@@ -876,7 +881,7 @@ df_sim_quantiles %>%
 	ggplot(aes(x = year, y = value, color = var)) +theme_bw() + RIG.themeLite() +
 	geom_line() + 
 	geom_point() + 
-	coord_cartesian(ylim = c(1, 3.5)) + 
+	coord_cartesian(ylim = c(1, 2.5)) + 
 	labs(title = "Distribution of simulated tax revenue relative to year 0 \n PIT dominant state (Assumption 2)",
 		   x  = "Year",
 			 y  = "Tax revenue relative to year 0",
@@ -982,7 +987,7 @@ df_prob %>%
 	coord_cartesian(ylim = c(0, 100)) + 
 	scale_color_manual(values = c(RIG.blue, "deepskyblue1")) + 
 	scale_x_continuous(breaks = seq(0, 30, 5)) + 
-	scale_y_continuous(breaks = seq(0, 100,5)) + 
+	scale_y_continuous(breaks = seq(0, 100,10)) + 
 	theme(legend.position = "bottom") + 
 	labs(title = "Probability of a decrease in tax revenue of 3% or larger \nup to the given year (Assumption 1) ",
 		   x = "Year",
@@ -1005,7 +1010,7 @@ df_prob %>%
 	coord_cartesian(ylim = c(0, 100)) + 
 	scale_color_manual(values = c(RIG.blue, "deepskyblue1")) +
   scale_x_continuous(breaks = seq(0, 30, 5)) + 
-	scale_y_continuous(breaks = seq(0, 100,5)) + 
+	scale_y_continuous(breaks = seq(0, 100,10)) + 
 	theme(legend.position = "bottom") + 
 	labs(title = "Probability of a decrease in tax revenue of 5% or larger \nup to the given year (Assumption 1)",
 		   x = "Year",
@@ -1027,7 +1032,7 @@ fig_drop3pct_a2 <-
 	coord_cartesian(ylim = c(0, 100)) + 
 	scale_color_manual(values = c(RIG.blue, "deepskyblue1")) + 
 	scale_x_continuous(breaks = seq(0, 30, 5)) + 
-	scale_y_continuous(breaks = seq(0, 100,5)) + 
+	scale_y_continuous(breaks = seq(0, 100,10)) + 
 	theme(legend.position = "bottom") + 
 	labs(title = "Probability of a decrease in tax revenue of 3% or larger \nup to the given year (Assumption 2) ",
 			 x = "Year",
@@ -1050,7 +1055,7 @@ fig_drop5pct_a2 <-
 	coord_cartesian(ylim = c(0, 100)) + 
 	scale_color_manual(values = c(RIG.blue, "deepskyblue1")) +
 	scale_x_continuous(breaks = seq(0, 30, 5)) + 
-	scale_y_continuous(breaks = seq(0, 100,5)) + 
+	scale_y_continuous(breaks = seq(0, 100,10)) + 
 	theme(legend.position = "bottom") + 
 	labs(title = "Probability of a decrease in tax revenue of 5% or larger \nup to the given year (Assumption 2)",
 			 x = "Year",
@@ -1168,6 +1173,29 @@ ggsave("policyBrief_out/fig_drop5pct_a2.png",   fig_drop5pct_a2, width = 8*0.8, 
 # growthReal_tot_local_a2      = growthReal_PIT_a2 * taxShare_local["share_PIT"] + growthReal_salesGen_a2 * taxShare_local["share_salesGen"] + 
 # 	growthReal_salesSel_a2 * taxShare_local["share_salesSel"] + growthReal_other_a2 * taxShare_local["share_other"] + growthReal_propertyLoc_a2 * taxShare_local["share_propertyLoc"]
 # 
+
+
+# df_temp <- 
+# 	df_sim %>% 
+# 	group_by(sim) %>% 
+# 	summarise(growthReal_tot_PITState_a1        = get_geoReturn(growthReal_tot_PITState_a1),
+# 						growthReal_tot_salesState_a1      = get_geoReturn(growthReal_tot_salesState_a1),
+# 						growthReal_tot_local_a1      = get_geoReturn(growthReal_tot_local_a1))
+# 
+# df_temp$growthReal_tot_PITState_a1 %>% mean
+# df_temp$growthReal_tot_salesState_a1 %>% mean
+# df_temp$growthReal_tot_local_a1 %>% mean
+# 
+# df_temp$growthReal_tot_PITState_a1 %>% median
+# df_temp$growthReal_tot_salesState_a1 %>% median
+# df_temp$growthReal_tot_local_a1 %>% median
+# 
+# df_sim %>% select(growthReal_tot_l)
+# 
+
+
+
+
 
 
 
