@@ -296,6 +296,10 @@ df_stock_q %>%
 
 # correlation over time, 
 
+# df_stock_y$dl_cbond %>% mean(na.rm = T)
+# df_stock_y$return_tot %>% mean(na.rm=T)
+# 
+# cor(df_stock_y$dl_cbond[-1], df_stock_y$return_tot[-1])
 
 
 #**********************************************************************

@@ -20,11 +20,11 @@
 # Simulation: Finance of stylized government 
 # 
 # 
-# 
-# 
+
 
 
 # 1. Macro model: GDP growth and asset returns
+  # 1.0 Description of data: Data_description_report  
   # 1.1 Modeling: Data_explore2.R
   # 1.2 Simulation: Model_simulation(x).R
 
@@ -37,7 +37,6 @@
   # Need pension simulatoin model for prototypical plan
   # Model_pensionSimInputs.R
     # penSimInputs_returns.RData saved
-
 
 # 4. Impact of pension contributions on government finance 
   # Model_pensionRIsk.R
