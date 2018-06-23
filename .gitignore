@@ -2,3 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
+
+
+policyBrief_out*/**/*.RData
+techReport_out*/**/*.RData
+# ~$*
