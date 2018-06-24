@@ -4,6 +4,6 @@
 .Ruserdata
 
 
-policyBrief_out*/**/*.RData
-techReport_out*/**/*.RData
+Archive*/**/*.RData
+outputs_report*/**/*.RData
 # ~$*
