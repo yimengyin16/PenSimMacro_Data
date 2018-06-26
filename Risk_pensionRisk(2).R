@@ -447,8 +447,8 @@ fig_ERC_tax_high2 <-
 				                                 ERC_tax_local_a1_high2, ERC_tax_local_a1_high2_normal) %>% 
 	gather(type, value, -DiscRate, -Amort, -year) %>% 
 	mutate(type = factor(type, levels = c("ERC_tax_PITState_a1_high2", "ERC_tax_salesState_a1_high2", "ERC_tax_local_a1_high2", "ERC_tax_local_a1_high2_normal"),
-				                     labels = c("Income tax dominant state \nsimulated returns", "sales tax dominant state \nsimulated returns", 
-				                     					  "constant tax revenue growth \nsimulated returns", "constant tax revenue growth \nnormal returns"))) %>% 
+				                     labels = c("Income tax dominant state \nsimulated returns", "Sales tax dominant state \nsimulated returns", 
+				                     					  "Baseline:\nconstant tax revenue growth \nsimulated returns", "Baseline:\nconstant tax revenue growth \nnormal returns"))) %>% 
 	ggplot(aes(x = year, y = 100 * value,
 						 color = type,
 						 shape = type)) + 
@@ -497,8 +497,8 @@ fig_ERC_tax_high1 <-
 				 ERC_tax_local_a1_high1, ERC_tax_local_a1_high1_normal) %>% 
 	gather(type, value, -DiscRate, -Amort, -year) %>% 
 	mutate(type = factor(type, levels = c("ERC_tax_PITState_a1_high1", "ERC_tax_salesState_a1_high1", "ERC_tax_local_a1_high1", "ERC_tax_local_a1_high1_normal"),
-											 labels = c("Income tax dominant state \nsimulated returns", "sales tax dominant state \nsimulated returns", 
-											 					 "constant tax revenue growth \nsimulated returns", "constant tax revenue growth \nnormal returns"))) %>% 
+											 labels = c("Income tax dominant state \nsimulated returns", "Sales tax dominant state \nsimulated returns", 
+											 					 "Baseline:\nconstant tax revenue growth \nsimulated returns", "Baseline:\nconstant tax revenue growth \nnormal returns"))) %>% 
 	ggplot(aes(x = year, y = 100 * value,
 						 color = type,
 						 shape = type)) + 
@@ -549,8 +549,8 @@ fig_ERC_tax_hike <-
 	select(DiscRate, Amort, year, ERC_tax_PITState_a1_hike, ERC_tax_salesState_a1_hike, ERC_tax_local_a1_hike, ERC_tax_local_a1_hike_normal) %>% 
 	gather(type, value, -DiscRate, -Amort, -year) %>% 
 	mutate(type = factor(type,    levels = c("ERC_tax_PITState_a1_hike", "ERC_tax_salesState_a1_hike", "ERC_tax_local_a1_hike", "ERC_tax_local_a1_hike_normal"),
-											          labels = c("Income tax dominant state \nsimulated returns", "sales tax dominant state \nsimulated returns", 
-											 					  					"constant tax revenue growth \nsimulated returns", "constant tax revenue growth \nnormal returns"))) %>%
+											          labels = c("Income tax dominant state \nsimulated returns", "Sales tax dominant state \nsimulated returns", 
+											 					  					"Baseline:\nconstant tax revenue growth \nsimulated returns", "Baseline:\nconstant tax revenue growth \nnormal returns"))) %>%
 	#mutate(runname = factor(runname, levels = c("A_O30pA5_port70_30", "A_C15d_port70_30"))) %>% 
 	ggplot(aes(x = year, y = 100 * value,
 						 color = type,

@@ -542,6 +542,9 @@ save(df_sim, file = paste0(dir_data_out, "GovFin_sim_forward.RData"))
 rec_year <- (df_sim %>% filter(sim == 2, recession_nqtr !=0))$year
 rec_year
 
+df_sim2 <- df_sim %>% filter(sim == 2)
+save(df_sim2, file = paste0(dir_data_out, "df_sim2.RData"))
+
 fig_singleSim_GDP <- 
 df_sim %>% filter(sim == 2) %>% 
 	select(sim, year, gdp_chg, stockreturn_real) %>% 
@@ -554,7 +557,7 @@ df_sim %>% filter(sim == 2) %>%
 	geom_hline(yintercept = 0, linetype = 2) +
 	scale_x_continuous(breaks = c(1, seq(0, 30, 5)[-1]) ) + 
 	scale_color_manual(values = c("darkgrey", RIG.red)) +
-	labs(title = "Illustration of a single simulation (#2): real GDP growth and stock return",
+	labs(title = "Illustration of a single simulation (#2): real GDP growth and real stock return",
 		   x = NULL, 
 			 y = "Percent",
 			 color = NULL) + 
@@ -568,7 +571,7 @@ df_sim %>% filter(sim == 2) %>%
 	select(sim, year, growthReal_tot_PITState_a1, growthReal_tot_salesState_a1) %>% 
 	gather(var, value, -sim, - year) %>% 
 	mutate(var = factor(var, levels = c("growthReal_tot_PITState_a1", "growthReal_tot_salesState_a1"), 
-											     labels = c("PIT dominant state", "Sales tax dominant state"))) %>% 
+											     labels = c("Income tax dominant state", "Sales tax dominant state"))) %>% 
 	ggplot(aes(x = year, y = 100 * value, color = var, shape = var)) + theme_bw() + RIG.themeLite() + 
 	geom_line() + 
 	geom_point() + 
@@ -577,7 +580,7 @@ df_sim %>% filter(sim == 2) %>%
 	coord_cartesian(ylim = c(-10, 10)) + 
 	scale_x_continuous(breaks = c(1, seq(0, 30, 5)[-1]) ) + 
 	scale_color_manual(values = c(RIG.blue, "deepskyblue1" )) +
-	labs(title = "Illustration of a single simulation (#2): \nGrowth of real tax revenue for two types of stylized government (Assumption 1)",
+	labs(title = "Illustration of a single simulation (#2): \nGrowth of real tax revenue for two types of stylized government",
 		   x = NULL, 
 			 y = "Percent",
 			 color = NULL,
@@ -698,14 +701,14 @@ df_sim %>%
 	select(year, sim,  growthReal_tot_PITState_a1, growthReal_tot_salesState_a1) %>% 
 	gather(var, value, -year, -sim) %>% 
 	mutate(var = factor(var, levels = c("growthReal_tot_PITState_a1", "growthReal_tot_salesState_a1", "growthReal_tot_local_a1"), 
-											     labels = c("PIT dominant state", "Sales tax dominant state", "Local government"))) %>% 
+											     labels = c("Income tax dominant state", "Sales tax dominant state", "Local government"))) %>% 
 	ggplot(aes(x = var, y = 100 * value, fill = var)) + theme_bw() + RIG.themeLite() +
 	geom_violin() + 
 	geom_boxplot(width = 0.1, outlier.shape = NA, color = "white") + 
 	scale_fill_manual(values = c(RIG.blue, "deepskyblue1", RIG.yellow.dark)) +
 	scale_y_continuous(breaks = seq(-20, 20, 2)) + 
 	theme(legend.position = "none") + 
-	labs(title = "Distributions of simulated real tax growth \nfor the two stylized governments (Assumption 1)",
+	labs(title = "Distributions of simulated growth in real total tax revenue \nfor the two stylized governments",
 		   fill = NULL, 
 			 x = NULL,
 			 y = "Percent (%)")
@@ -982,7 +985,7 @@ df_prob %>%
 	select(year, tax_drop3pct_PITState_a1, tax_drop3pct_salesState_a1) %>% 
 	gather(var, value, -year) %>% 
 	mutate(var = factor(var, levels = c("tax_drop3pct_PITState_a1", "tax_drop3pct_salesState_a1"),
-													 labels = c("PIT dominant state", "sales tax dominant state")					
+													 labels = c("Income tax dominant state", "Sales tax dominant state")					
 																			)) %>% 
 	ggplot(aes(x = year, y = 100*value, color = var)) + theme_bw() + RIG.themeLite() + 
 	geom_line() + 
@@ -992,7 +995,7 @@ df_prob %>%
 	scale_x_continuous(breaks = seq(0, 30, 5)) + 
 	scale_y_continuous(breaks = seq(0, 100,10)) + 
 	theme(legend.position = "bottom") + 
-	labs(title = "Probability of a decrease in tax revenue of 3% or larger \nup to the given year (Assumption 1) ",
+	labs(title = "Probability of a decrease in real total tax revenue of 3% or larger \nup to the given year",
 		   x = "Year",
 			 y = "Probability (%)",
 			 color = NULL)
@@ -1004,7 +1007,7 @@ df_prob %>%
 	gather(var, value, -year) %>% 
 	mutate(var = factor(var, 
 											levels = c("tax_drop5pct_PITState_a1", "tax_drop5pct_salesState_a1"),
-											labels = c("PIT dominant state", "sales tax dominant state")					
+											labels = c("Income tax dominant state", "Sales tax dominant state")					
 	)) %>% 
 	ggplot(aes(x = year, y = 100*value, color = var)) + theme_bw() + RIG.themeLite() + 
 	geom_line() + 
@@ -1015,7 +1018,7 @@ df_prob %>%
   scale_x_continuous(breaks = seq(0, 30, 5)) + 
 	scale_y_continuous(breaks = seq(0, 100,10)) + 
 	theme(legend.position = "bottom") + 
-	labs(title = "Probability of a decrease in tax revenue of 5% or larger \nup to the given year (Assumption 1)",
+	labs(title = "Probability of a decrease in real total tax revenue of 5% or larger \nup to the given year",
 		   x = "Year",
 			 y = "Probability (%)",
 			 color = NULL)

@@ -5,8 +5,6 @@
 #                          Notes                                   ####
 #**********************************************************************
 
-
-
 #'Notes on modeling:
 #'
 #' A discussion of ARIMA transfer function models:

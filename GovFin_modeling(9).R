@@ -135,7 +135,7 @@ recessionPeriods <-
 	rename(peak =   V1,
 				 trough = V2) %>% 
 	mutate(peak = peak - 1/4,
-				 trough = trough - 1/4)
+				 trough = trough - 0/4)
 
 
 get_logReturn <- function(x){
@@ -880,6 +880,100 @@ fig_capgainsTax_real
 #   Figures:tax revenues, GDP and asset returns                             ####
 #*******************************************************************************
 
+# Figure: comparing cycles of taxes
+
+df_cyclePct <- 
+df_decomp_real2 %>% 
+	filter(year >= 1978) %>% 
+	select(state_abb, year, 
+				 GDP_logtrend, GDP_logcycle,
+				 PIT_logtrend, PIT_logcycle,
+				 salesgen_logtrend, salesgen_logcycle,
+				 salessel_logtrend, salessel_logcycle,
+				 nonPITsalestot_logtrend, nonPITsalestot_logcycle,
+				 propertyLoc_logtrend, propertyLoc_logcycle) %>% 
+	mutate(GDP_cyclePct = exp(GDP_logcycle) - 1,
+				 PIT_cyclePct = exp(PIT_logcycle) - 1,
+				 salesgen_cyclePct = exp(salesgen_logcycle) - 1,
+				 salessel_cyclePct = exp(salessel_logcycle) - 1,
+				 nonPITsalestot_cyclePct = exp(nonPITsalestot_logcycle) - 1,
+				 propertyLoc_cyclePct = exp(propertyLoc_logcycle) - 1
+				 )
+
+fig_cyclePct <- 
+df_cyclePct %>% 
+	select(year, 
+				 GDP_cyclePct, 
+				 PIT_cyclePct,
+				 salesgen_cyclePct,
+				 nonPITsalestot_cyclePct) %>% 
+	gather(var, value, -year) %>% 
+	mutate(var = factor(var, levels = c("GDP_cyclePct", "PIT_cyclePct", "salesgen_cyclePct", "nonPITsalestot_cyclePct"),
+	                         labels = c("GDP", "Personal income tax \n(state)", "General sales tax \n(state)", "Non-personal-income-non-sales taxes \n(state)")			
+											)) %>% 
+	ggplot() + 
+	theme_bw() + RIG.themeLite() + 
+	geom_line(aes(x = year, y = 100 * value, color = var)) + 
+	geom_point(aes(x = year, y = 100 * value, color = var, shape = var)) +
+	geom_hline(yintercept = 0, linetype = 2) + 
+	geom_rect(data = recessionPeriods[-(1:5),],
+						aes(xmin = peak, xmax = trough,
+								ymin = -Inf, ymax = Inf), alpha = 0.4, fill = "grey") +
+  scale_x_continuous(breaks = seq(1950, 2020, 5)) + 
+	scale_y_continuous(breaks = seq(-100, 100, 2)) + 
+	scale_color_manual(values = c(color_GDP, color_PIT, color_salesgen, color_other)) + 
+	scale_shape_manual(values = c(15, 16, 17, 18)) + 
+	labs(x = NULL, y = "Percent above or below trend (%)", color = NULL, shape = NULL,
+			 title = "Cycles in GDP growth and tax revenues",
+			 subtitle = "Calculated using real values (2009 dollar)") + 
+	theme(legend.position = "bottom") 
+	#guides(col = guide_legend(ncol = 3, byrow = TRUE))
+# geom_hline(yintercept = 1, linetype = 2)
+
+
+
+fig_cyclePct2 <- 
+df_cyclePct %>% 
+	select(year, 
+				 GDP_cyclePct, 
+				 PIT_cyclePct,
+				 salesgen_cyclePct,
+				 propertyLoc_cyclePct) %>% 
+	gather(var, value, -year) %>% 
+	mutate(var = factor(var, levels = c("GDP_cyclePct", "PIT_cyclePct","salesgen_cyclePct", "propertyLoc_cyclePct"),
+											     labels = c("GDP", "Personal income tax \n(state)", "General sales tax \n(state)", 
+																      "Property tax\n(local)")			
+	)) %>% 
+	ggplot() + 
+	theme_bw() + RIG.themeLite() + 
+	geom_line(aes(x = year, y = 100 * value, color = var)) + 
+	geom_point(aes(x = year, y = 100 * value, color = var, shape = var)) +
+	geom_hline(yintercept = 0, linetype = 2) + 
+	geom_rect(data = recessionPeriods[-(1:5),],
+						aes(xmin = peak, xmax = trough,
+								ymin = -Inf, ymax = Inf), alpha = 0.4, fill = "grey") +
+	scale_x_continuous(breaks = seq(1950, 2020, 5)) + 
+	scale_y_continuous(breaks = seq(-100, 100, 2)) + 
+	scale_color_manual(values = c(color_GDP, color_PIT, color_salesgen, color_propertyLoc)) + 
+	scale_shape_manual(values = c(15, 16, 17, 18)) + 
+	labs(x = NULL, y = "Percent above or below trend (%)", color = NULL, shape = NULL,
+			 title    = "Cycles in GDP growth and tax revenues",
+			 subtitle = "Calculated using real values (2009 dollar)") + 
+	theme(legend.position = "bottom") 
+# guides(col = guide_legend(ncol = 3, byrow = TRUE))
+# geom_hline(yintercept = 1, linetype = 2)
+fig_cyclePct2
+
+ggsave(paste0(dir_fig_out, "fig_GovFin_cyclePct.png"), fig_cyclePct,    width = 10*0.8, height = 6*0.8)
+ggsave(paste0(dir_fig_out, "fig_GovFin_cyclePct2.png"), fig_cyclePct2 , width = 10*0.8, height = 6*0.8)
+
+
+
+
+
+
+
+
 # PIT and sales
 
 df_decomp_real2	%>% 
@@ -967,8 +1061,38 @@ df_decomp_real2	%>%
 	theme(legend.position = "bottom")
 fig_stockCaptains
 
+
+# PIT 2: cyclical component (?) of Stock return and capgains
+
+fig_PITstockCaptains <- 
+	df_decomp_real2	%>% 
+	filter(year >= 1988) %>% 
+	select(state_abb, year, stockIdx_dlog, capgains_dlog, PIT_dlog) %>% 
+	mutate(capgains_dlog = lag(capgains_dlog),
+				 stockIdx_dlog = lag(stockIdx_dlog)
+	) %>%
+	gather(var, value, -state_abb, -year) %>% 
+	mutate(var = factor(var, levels = c("stockIdx_dlog", "capgains_dlog", "PIT_dlog"),
+											     labels = c("SP500 total real return (1-year lag)", 
+											     					  "% change in inflation-adjusted capital gains (1-year lag)", 
+											     					  "% change in inflation-adjusted state individual income tax"))) %>%
+	qplot(x = year, y = 100 * value, color = var, data=.,  geom = c("line", "point")) + 
+	theme_bw() + RIG.themeLite() + 
+	geom_hline(yintercept = 0, linetype = 2) + 
+	scale_x_continuous(breaks = seq(1950, 2020, 5)) + 
+	scale_y_continuous(breaks = seq(-100, 100, 10)) + 
+	scale_color_manual(values = c("blue", RIG.red, color_PIT)) + 
+	labs(x = NULL, y = "Percent", color = NULL,
+			 title    = "The stock market, capital gains, and income tax revenue",
+			 subtitle = NULL) + 
+	theme(legend.position = "bottom")
+fig_PITstockCaptains
+
+
+
 ggsave(paste0(dir_fig_out, "fig_GovFin_cycle_PIT.png"), fig_cycle_PIT , width = 10*0.8, height = 6*0.8)
 ggsave(paste0(dir_fig_out, "fig_GovFin_stockCaptains.png"), fig_stockCaptains , width = 10*0.8, height = 6*0.8)
+ggsave(paste0(dir_fig_out, "fig_GovFin_PITstockCaptains.png"), fig_PITstockCaptains , width = 12*0.8, height = 7*0.8)
 
 
 

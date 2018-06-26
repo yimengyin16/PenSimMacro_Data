@@ -186,7 +186,6 @@ df_sim %>% head
 
 # This module create investment return series. 
 
-
 ecdf_fun <- function(x,perc) ecdf(x)(perc)
 
 load("policyBrief_out/simulation_MS1.RData")

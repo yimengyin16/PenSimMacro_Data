@@ -332,8 +332,8 @@ df_stock_q$dl_gdp_o
 #                 1. Global parameters for simulation                    ####
 #***********************************************************************************
 
-# nyear <- 30
-# nsim  <- 2000
+nyear <- 30
+nsim  <- 2000
 
 
 #***********************************************************************************
@@ -410,8 +410,8 @@ replicate(10, rmarkovchain(n = 4*30, object = mc_gdp, t0 = '1'))
 
 simInputs_historical <- 
 	list(
-		nyear = 30,
-		nsim  = 2000,
+		nyear = 70,
+		nsim  = 5000,
 		
 		# Markov Chain object for GDP
 		mc_gdp = mc_gdp,
@@ -500,8 +500,8 @@ simInputs_forward <-
 # simInputs <- simInputs_historical
 # sim_name  <- "sim_results_historical"
 
-simInputs <- simInputs_forward
-sim_name  <- "MacroModel_sim_results_forward"
+simInputs <- simInputs_historical
+sim_name  <- "MacroModel_sim_results_historical"
 
 
 
@@ -591,7 +591,7 @@ cor(cbind(as.vector(sim_bondreturn), as.vector(sim_stockreturn)))
 
 ## Convert quarterly returns / growth into annual values (quarterly returns compounded within a year)
 
-nyear <- simInputs$nyear
+nyear <- simInputs_historical$nyear
 
 df_sim_stockreturn_q <- 
 	as.data.frame(sim_stockreturn) %>% 
@@ -661,7 +661,7 @@ assign(sim_name, sim_results)
 # 	   df_sim_bondreturn_y,
 # 	   df_sim_gdp_y,
 # 	   df_sim_gdp_regimes_y,
-save(sim_results,
+save(MacroModel_sim_results_historical,
 		 file = paste0(dir_data_out, sim_name, ".RData"))
 
 sim_name
