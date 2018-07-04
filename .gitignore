@@ -6,4 +6,5 @@
 
 Archive*/**/*.RData
 outputs_report*/**/*.RData
+data_out*/**/*.RData
 # ~$*
