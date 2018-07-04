@@ -442,7 +442,6 @@ simInputs_historical <-
 		# GDP recession
 		gdp.mean_1 = -0.0055,
 		gdp.std_1  = 5.463e-05^0.5 # 0.007391211
-		
 	)
 	
 
@@ -502,7 +501,6 @@ simInputs_forward <-
 
 simInputs <- simInputs_historical
 sim_name  <- "MacroModel_sim_results_historical"
-
 
 
 

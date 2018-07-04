@@ -127,6 +127,8 @@ RIG.themeLite <- function() {
 load(paste0(dir_data_out, "dataAll.RData"))
 load(paste0(dir_data_out, "MacroModel_sim_results_historical.RData"))
 
+sim_results <- MacroModel_sim_results_historical
+
 #**********************************************************************
 #               Data  ####
 #**********************************************************************
@@ -305,7 +307,10 @@ df_simSum_gdp_historical
 
 # Number of recessions 
 sapply(summary_gdpRegime_1, length) %>% quantile(qts)  # ~5 recessions in 30 years (many are very short)
-ecdf(sapply(summary_gdpRegime_1, length))(9)
+sapply(summary_gdpRegime_0, length) %>% quantile(qts)  # ~5 recessions in 30 years (many are very short)
+ecdf(sapply(summary_gdpRegime_1, length))(10)
+ecdf(sapply(summary_gdpRegime_0, length))(10)
+
 
 
 # Expected length of regimes
@@ -314,11 +319,6 @@ sapply(summary_gdpRegime_0, mean) %>% quantile(qts, na.rm = TRUE)  # average len
 
 ecdf(sapply(summary_gdpRegime_1, mean))(3.7)
 ecdf(sapply(summary_gdpRegime_0, mean))(20.2)
-
-
-
-
-
 
 
 

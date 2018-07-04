@@ -1,5 +1,6 @@
 # This script is for modeling tax revenue of stylized governments
 
+# (4) workforce +0.5%; O10d replaces O30p
 
 #**********************************************************************
 #                           Packages                               ####
@@ -206,7 +207,11 @@ df_sim %>%
 				 taxLevelReal_salesState_tot_a2,
 				 
 				 taxLevelReal_local_tot_a1,
-				 taxLevelReal_local_tot_a2) %>% 
+				 taxLevelReal_local_tot_a2,
+				 
+				 taxLevelReal_GDPState_tot_a1
+				 
+				 ) %>% 
 	mutate_at(
 		vars(
 			taxLevelReal_PITState_tot_a1,
@@ -216,7 +221,10 @@ df_sim %>%
 			taxLevelReal_salesState_tot_a2,
 			
 			taxLevelReal_local_tot_a1,
-			taxLevelReal_local_tot_a2),
+			taxLevelReal_local_tot_a2,
+			
+			taxLevelReal_GDPState_tot_a1
+			),
 		
 		funs(ifelse(year == 1, 1, lag(.)))
 	)
@@ -231,7 +239,7 @@ df_pension <-
 # assuming the ERC under slow repayment of UAAL and 7.5% discount rate is 3% of total tax revenue in year 1
 v <- df_pension %>% filter(year == 1, sim %in% 1)
 v
-taxRev_init <- v[v$runname == "A_O30pA5_port70_30","ERC"]/ERC_taxRev_init
+taxRev_init <- v[v$runname == "A_O30p_port70_30","ERC"]/ERC_taxRev_init
 
 v %>% mutate(pct = 100* ERC / taxRev_init)
 
@@ -257,7 +265,11 @@ df <-
 				taxLevelReal_salesState_tot_a2,
 				
 				taxLevelReal_local_tot_a1,
-				taxLevelReal_local_tot_a2),
+				taxLevelReal_local_tot_a2,
+				
+				taxLevelReal_GDPState_tot_a1
+				
+				),
 			
 			funs(. * taxRev_init)
 	) %>% 
@@ -269,10 +281,12 @@ df <-
 		ERC_tax_salesState_a1 = ERC_real / taxLevelReal_salesState_tot_a2,
 		
 		ERC_tax_local_a1      = ERC_real / taxLevelReal_local_tot_a1,
-		ERC_tax_local_a1      = ERC_real / taxLevelReal_local_tot_a2
+		ERC_tax_local_a1      = ERC_real / taxLevelReal_local_tot_a2,
+		
+		ERC_tax_GDPState_a1   = ERC_real / taxLevelReal_GDPState_tot_a1
 	)
 
-x <- df %>% filter(sim %in% 1:3, year == 1)
+# x <- df %>% filter(sim %in% 1:3, year == 1)
 
 na2zero <- function(x){replace(x, is.na(x), 0)}
 
@@ -290,9 +304,14 @@ df_risk <-
 		ERC_tax_salesState_a1_high2 = cumany(ERC_tax_salesState_a1>= 0.12),
 		ERC_tax_salesState_a1_hike  = cumany(na2zero(ERC_tax_salesState_a1 - lag(ERC_tax_salesState_a1, 2) >= 0.03)),
 
-		ERC_tax_localState_a1_high1 = cumany(ERC_tax_local_a1 >= ERC_tax_local_a1[year == 1] + 0.05),
-		ERC_tax_localState_a1_high2 = cumany(ERC_tax_local_a1 >= 0.12),
-		ERC_tax_localState_a1_hike  = cumany(na2zero(ERC_tax_local_a1 - lag(ERC_tax_local_a1, 2) >= 0.03))
+		ERC_tax_local_a1_high1 = cumany(ERC_tax_local_a1 >= ERC_tax_local_a1[year == 1] + 0.05),
+		ERC_tax_local_a1_high2 = cumany(ERC_tax_local_a1 >= 0.12),
+		ERC_tax_local_a1_hike  = cumany(na2zero(ERC_tax_local_a1 - lag(ERC_tax_local_a1, 2) >= 0.03)),
+		
+		ERC_tax_GDPState_a1_high1 = cumany(ERC_tax_GDPState_a1 >= ERC_tax_GDPState_a1[year == 1] + 0.05),
+		ERC_tax_GDPState_a1_high2 = cumany(ERC_tax_GDPState_a1 >= 0.12),
+		ERC_tax_GDPState_a1_hike  = cumany(na2zero(ERC_tax_GDPState_a1 - lag(ERC_tax_GDPState_a1, 2) >= 0.03))
+		
 		     
 		# ERC_tax_PITState_a1_high1  = cumany(ERC_tax_PITState_a1   >= 0.1 ),
 		# ERC_tax_PITState_a1_high2  = cumany(ERC_tax_PITState_a1   >= 0.15),
@@ -310,7 +329,7 @@ df_risk <-
 	group_by(runname, year) %>%
 	dplyr::summarize(
 		ERC_tax_PITState_a1_high2 =  sum(ERC_tax_PITState_a1_high2, na.rm = T)/n(),
-		ERC_tax_PITState_a1_hike =  sum(ERC_tax_PITState_a1_hike, na.rm = T)/n(),
+		ERC_tax_PITState_a1_hike  =  sum(ERC_tax_PITState_a1_hike, na.rm = T)/n(),
 		ERC_tax_PITState_a1_high1 =  sum(ERC_tax_PITState_a1_high1, na.rm = T)/n(),
 		
 		
@@ -318,10 +337,13 @@ df_risk <-
 		ERC_tax_salesState_a1_hike =  sum(ERC_tax_salesState_a1_hike, na.rm = T)/n(),
 		ERC_tax_salesState_a1_high1 =  sum(ERC_tax_salesState_a1_high1, na.rm = T)/n(),
 		
-		ERC_tax_local_a1_high2   =  sum(ERC_tax_localState_a1_high2, na.rm = T)/n(),
-		ERC_tax_local_a1_hike   =  sum(ERC_tax_localState_a1_hike, na.rm = T)/n(),
-		ERC_tax_local_a1_high1 =  sum(ERC_tax_localState_a1_high1, na.rm = T)/n(),
+		ERC_tax_local_a1_high2   =  sum(ERC_tax_local_a1_high2, na.rm = T)/n(),
+		ERC_tax_local_a1_hike    =  sum(ERC_tax_local_a1_hike, na.rm = T)/n(),
+		ERC_tax_local_a1_high1   =  sum(ERC_tax_local_a1_high1, na.rm = T)/n(),
 		
+		ERC_tax_GDPState_a1_high2   =  sum(ERC_tax_GDPState_a1_high2, na.rm = T)/n(),
+		ERC_tax_GDPState_a1_hike    =  sum(ERC_tax_GDPState_a1_hike, na.rm = T)/n(),
+		ERC_tax_GDPState_a1_high1   =  sum(ERC_tax_GDPState_a1_high1, na.rm = T)/n(),
 		
 		ERC_tax_PITState_a1.q10 = quantile(ERC_tax_PITState_a1, 0.1,na.rm = T),
 		ERC_tax_PITState_a1.q25 = quantile(ERC_tax_PITState_a1, 0.25,na.rm = T),
@@ -339,7 +361,15 @@ df_risk <-
 		ERC_tax_local_a1.q25 = quantile(ERC_tax_local_a1, 0.25,na.rm = T),
 		ERC_tax_local_a1.q50 = quantile(ERC_tax_local_a1, 0.5,na.rm = T),
 		ERC_tax_local_a1.q75 = quantile(ERC_tax_local_a1, 0.75,na.rm = T),
-		ERC_tax_local_a1.q90 = quantile(ERC_tax_local_a1, 0.9,na.rm = T)) %>%
+		ERC_tax_local_a1.q90 = quantile(ERC_tax_local_a1, 0.9,na.rm = T),
+		
+		ERC_tax_GDPState_a1.q10 = quantile(ERC_tax_GDPState_a1, 0.1,na.rm = T),
+		ERC_tax_GDPState_a1.q25 = quantile(ERC_tax_GDPState_a1, 0.25,na.rm = T),
+		ERC_tax_GDPState_a1.q50 = quantile(ERC_tax_GDPState_a1, 0.5,na.rm = T),
+		ERC_tax_GDPState_a1.q75 = quantile(ERC_tax_GDPState_a1, 0.75,na.rm = T),
+		ERC_tax_GDPState_a1.q90 = quantile(ERC_tax_GDPState_a1, 0.9,na.rm = T)
+		
+		) %>%
 	ungroup()
 
 
@@ -355,6 +385,10 @@ df_risk <-
   # 2. MS returns vs normal returns
   # 3. Amortization method
   # 4. discout rate
+
+df_risk %<>% select(runname, year, ERC_tax_local_a1_high1, ERC_tax_GDPState_a1_high1, ERC_tax_salesState_a1_high1, ERC_tax_PITState_a1_high1,
+									                 ERC_tax_local_a1_high2, ERC_tax_GDPState_a1_high2, ERC_tax_salesState_a1_high2, ERC_tax_PITState_a1_high2,
+										               ERC_tax_local_a1_hike,  ERC_tax_GDPState_a1_hike,  ERC_tax_salesState_a1_hike, ERC_tax_PITState_a1_hike) 
 
 
 ## 1. Risk implied by Normally distributed returns and Markov switching returns
@@ -374,7 +408,8 @@ df_risk %>%
 
 df_risk %>% 
 	filter(year == 30) %>% 
-	select(runname, year, contains("_hike") )
+	select(runname, year, contains("_hike") ) %>% 
+	filter(str_detect(runname, "A_"))
 
  # Results: 
   # Risk measures are significantly higher in simulations with synergy between investment returns and economic conditions
@@ -414,8 +449,9 @@ df_risk %>%
 df_risk %<>%  mutate(
 	DiscRate = ifelse(str_detect(runname,"A_"), "Discount rate = 7.5%", "Discount rate = 6.0%"),
 	DiscRate = factor(DiscRate, levels = c("Discount rate = 7.5%", "Discount rate = 6.0%")),
-	Amort    = ifelse(str_detect(runname,"O30pA5"), "Slow repayment of UAAL", "Fast repayment of UAAL"),
-	Amort    = factor(Amort, levels = c("Fast repayment of UAAL", "Slow repayment of UAAL")),
+	Amort    = ifelse(str_detect(runname,"O30p"), "Slow repayment of UAAL",
+										ifelse(str_detect(runname,"O15d"), "Fast repayment of UAAL 15y", "Fast repayment of UAAL 10y")),
+	Amort    = factor(Amort, levels = c("Fast repayment of UAAL 10y", "Fast repayment of UAAL 15y", "Slow repayment of UAAL")),
 	ReturnDist = ifelse(str_detect(runname,"normal"), "normal", "port70_30"),
 	ReturnDist = factor(ReturnDist, levels = c("port70_30", "normal"))
 	
@@ -587,13 +623,15 @@ Table_ERC_tax_high1 <-
 	df_risk %>% 
 	filter(year == 30) %>% 
 	select(ReturnDist, DiscRate, Amort, year, contains("_high1") ) %>% 
-	arrange(ReturnDist, DiscRate, Amort)
+	arrange(DiscRate, ReturnDist, Amort)
+Table_ERC_tax_high1
+
 
 Table_ERC_tax_high2 <- 
 df_risk %>% 
 	filter(year == 30) %>% 
 	select(ReturnDist, DiscRate, Amort, contains("_high2")) %>% 
-	arrange(ReturnDist, DiscRate, Amort)
+	arrange(DiscRate, ReturnDist, Amort)
 Table_ERC_tax_high2
 
 
@@ -601,7 +639,7 @@ Table_ERC_tax_hike <-
 df_risk %>% 
 	filter(year == 30) %>% 
 	select(ReturnDist, DiscRate, Amort, year, contains("_hike") ) %>% 
-	arrange(ReturnDist, DiscRate, Amort)
+	arrange(DiscRate, ReturnDist, Amort)
 
 
 write.xlsx2(Table_ERC_tax_high1,  file = paste0(dir_fig_out, "Table_RiskGov_ERC_tax_risk.xlsx"), sheetName = "ERC_tax_high1")
@@ -669,6 +707,14 @@ df_all.stch %>% filter(year %in% c(1, 10, 20, 30), runname == "B_O30pA5_port70_3
 df_all.stch %>% filter(year %in% c(1, 10, 20, 30), runname == "B_C15d_port70_30" )
 df_all.stch %>% filter(year %in% c(1, 10, 20, 30), runname == "B_O30pA5_normal")
 df_all.stch %>% filter(year %in% c(1, 10, 20, 30), runname == "B_C15d_normal" )
+
+
+
+# Payroll growth
+
+results_all %>% 
+	filter(sim == 1) %>% 
+	select(sim, year, PR, PR.growth)
 
 
 
