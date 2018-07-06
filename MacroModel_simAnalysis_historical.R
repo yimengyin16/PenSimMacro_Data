@@ -336,7 +336,7 @@ dist_stock <-
 	summarise(Avg_arith = mean(return_y),
 						SD        = sd(return_y),
 						skew      = skewness(return_y),
-						kurtosis  = kurtosis(return_y)
+						kurtosis  = kurtosis(return_y, method = "sample_excess")
 	)
 
 qts <- c(0.05, 0.25, 0.5, 0.75, 0.95)
@@ -353,7 +353,7 @@ v_hist <- c(
 mean = df_stock_y$return_tot %>% mean(na.rm = T),
 sd   = df_stock_y$return_tot %>% sd(na.rm = T),
 skew = df_stock_y$return_tot %>% skewness(na.rm = T),
-kurto= df_stock_y$return_tot %>% kurtosis(na.rm = T)
+kurto= df_stock_y$return_tot %>% kurtosis(na.rm = T, method = "sample_excess")
 )
 v_hist
 
