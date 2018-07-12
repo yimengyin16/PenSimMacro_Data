@@ -439,10 +439,31 @@ df_stock_q %>%
  	mutate(freq = "Annual")
 )
 
+df_stats
+
+df_stock_q %>% 
+	select(dl_gdp = dl_gdp_o, return_tot = return_tot_o, dl_gbond = dl_gbond_o, dl_cbond = dl_cbond_o) %>% 
+	gather(var, value) %>% 
+	mutate(var = factor(var, levels = c('dl_gdp', 'return_tot', 'dl_gbond', 'dl_cbond'),
+											labels = c('GDP growth', 'Stock return', 'Long-term Treasury bond return', 'Long-term coorporate bond'))) %>% 
+	group_by(var) %>% 
+	summarise(kurtosis = PerformanceAnalytics::kurtosis(value))
+	
+
+df_stock_y %>% 
+	select(dl_gdp = dl_gdp_o, return_tot = return_tot_o, dl_gbond = dl_gbond_o, dl_cbond = dl_cbond_o) %>% 
+	gather(var, value) %>% 
+	mutate(var = factor(var, levels = c('dl_gdp', 'return_tot', 'dl_gbond', 'dl_cbond'),
+											labels = c('GDP growth', 'Stock return', 'Long-term Treasury bond return', 'Long-term coorporate bond'))) %>% 
+	group_by(var) %>% 
+	summarise(kurtosis = PerformanceAnalytics::kurtosis(value))
+
+
 write_excel_csv(df_stats, paste0(dir_outputs, 'tab_data_descriptive_stats.csv') )
 
 # paste0(dir_outputs, 'tab_data_descriptive_stats.csv')
 
+dir_outputs
 
 
 
