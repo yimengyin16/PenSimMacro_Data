@@ -798,6 +798,8 @@ df_sim %>%
 			 y = "Percent (%)")
 fig_taxGrowth_box_a1
 
+# df_sim$growthReal_tot_PITState_a1 %>% median # 2.44%
+
 
 fig_taxGrowth_box_a2 <- 
 df_sim %>% 
