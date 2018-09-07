@@ -958,14 +958,15 @@ df_cyclePct %>%
 	scale_shape_manual(values = c(15, 16, 17, 18)) + 
 	labs(x = NULL, y = "Percent above or below trend (%)", color = NULL, shape = NULL,
 			 title    = "Cycles in GDP growth and tax revenues",
-			 subtitle = "Calculated using real values (2009 dollar)") + 
+			 subtitle = "Calculated using real values (2009 dollar)",
+			 caption  = "Source: \nFederal Reserve Bank of St. Louis, FRED;\nU.S. Census Bureau, Annual Survey of State and Local Government Finances") + 
 	theme(legend.position = "bottom") 
 # guides(col = guide_legend(ncol = 3, byrow = TRUE))
 # geom_hline(yintercept = 1, linetype = 2)
 fig_cyclePct2
 
 ggsave(paste0(dir_fig_out, "fig_GovFin_cyclePct.png"), fig_cyclePct,    width = 10*0.8, height = 6*0.8)
-ggsave(paste0(dir_fig_out, "fig_GovFin_cyclePct2.png"), fig_cyclePct2 , width = 10*0.8, height = 6*0.8)
+ggsave(paste0(dir_fig_out, "fig_GovFin_cyclePct2.png"), fig_cyclePct2 , width = 10*0.8, height = 6*0.85)
 
 
 
@@ -1084,7 +1085,8 @@ fig_PITstockCaptains <-
 	scale_color_manual(values = c("blue", RIG.red, color_PIT)) + 
 	labs(x = NULL, y = "Percent", color = NULL,
 			 title    = "The stock market, capital gains, and income tax revenue",
-			 subtitle = NULL) + 
+			 subtitle = NULL,
+			 caption  = "Source:\nSBBI Yearbook 2016;\nU.S. Census Bureau, Annual Survey of State and Local Government Finances") + 
 	theme(legend.position = "bottom")
 fig_PITstockCaptains
 
@@ -1092,7 +1094,7 @@ fig_PITstockCaptains
 
 ggsave(paste0(dir_fig_out, "fig_GovFin_cycle_PIT.png"), fig_cycle_PIT , width = 10*0.8, height = 6*0.8)
 ggsave(paste0(dir_fig_out, "fig_GovFin_stockCaptains.png"), fig_stockCaptains , width = 10*0.8, height = 6*0.8)
-ggsave(paste0(dir_fig_out, "fig_GovFin_PITstockCaptains.png"), fig_PITstockCaptains , width = 12*0.8, height = 7*0.8)
+ggsave(paste0(dir_fig_out, "fig_GovFin_PITstockCaptains.png"), fig_PITstockCaptains , width = 12*0.8, height = 7*0.85)
 
 
 
@@ -2285,6 +2287,7 @@ taxStr_state_nom %>%
 
 
 ## Plotting % of sales against % of PIT
+fig_GovFin_sharePITSales <- 
 taxStr_state_nom %>% 
 	filter(year == 2015, !is.na(state_abb)) %>% 
 	ggplot(aes(x = indivIncome_pct, y = salesgen_pct, label = state_abb)) + theme_bw() + RIG.themeLite() +  
@@ -2292,7 +2295,12 @@ taxStr_state_nom %>%
 	geom_text_repel(size = 3.5) + 
 	labs(x = "Share of individual income tax (%)",
 			 y = "Share of general sales tax (%)",
-			 title = "Shares of individual income tax and general sales tax across states in 2015")
+			 title = "Shares of individual income tax and general sales tax across states in 2015",
+			 caption  = "Source: U.S. Census Bureau, Annual Survey of State and Local Government Finances")
+fig_GovFin_sharePITSales
+
+ggsave(paste0(dir_fig_out, "fig_GovFin_sharePITSales.png"), fig_GovFin_sharePITSales,  width = 10*0.9, height = 6*0.9)
+
 
 
 
