@@ -264,7 +264,7 @@ df_stock_y %>% fn_fig  # sd: 5 years rolling
 # GDP, stock return and volatiltiy
 
 fig_title <- 'Historical stock return, volatility, and GDP growth rates'
-fig_stock.gdp <- 
+fig_stock.gdp <- # paperFigure
 df_stock_q %>% 
 	select(yearMon,
 				 sd_return, 
@@ -288,9 +288,11 @@ df_stock_q %>%
 	guides(color = guide_legend(keywidth = 5, keyheight = 1))+
 	labs(title = fig_title,
 		   x = NULL,
-			 y = 'Return / Growth rate') + 
+			 y = 'Return / Growth rate',
+			 caption = "Source: Federal Reserve Bank of St. Louis, Federal Reserve Economic Data; SBBI Yearbook 2016.") + 
 	theme(legend.position = "bottom",
 				legend.title = element_blank())
+fig_stock.gdp 
 
 # Note:
  # Stock returns are annualized quarterly return; 
@@ -300,7 +302,7 @@ df_stock_q %>%
 
 # bond return and volatility
 fig_title <- 'Historical long-term Treasury bond return, volatility, and GDP growth rates'
-fig_gbond.gdp <- 
+fig_gbond.gdp <- # paperFigure
 df_stock_q %>% 
 	select(yearMon,
 				 mean_gbond,
@@ -324,9 +326,11 @@ df_stock_q %>%
   guides(color = guide_legend(keywidth = 5, keyheight = 1))+
 	labs(title = fig_title,
 			 x = NULL,
-			 y = 'Return / Growth rate') + 
+			 y = 'Return / Growth rate',
+			 caption = "Source: Federal Reserve Bank of St. Louis, Federal Reserve Economic Data; SBBI Yearbook 2016.") + 
 	theme(legend.position = "bottom",
 				legend.title = element_blank())
+fig_gbond.gdp
 
 # Teasury bond returns are annualized quarterly return; 
 # GDP growth rates are annualized quarterly growth rates
@@ -358,10 +362,12 @@ df_stock_q %>%
   	scale_color_manual(values = c(RIG.red),  name = NULL) + 
 		coord_cartesian(ylim = c(-1, 1)) +
 	theme(legend.position = "none",
-				legend.title = element_blank()) + 
+				legend.title = element_blank(),
+				) + 
 	labs(title = fig_title,
 			x = NULL,
-			y = 'Correlation coefficient') 
+			y = 'Correlation coefficient',
+			caption = "Source: SBBI Yearbook 2016.") 
 
 fig_corr_stock.gbond
 
@@ -393,22 +399,24 @@ bind_rows(
 		mutate(freq = "Annual")
 )
 
-fig_qqplot <- 
+
+fig_qqplot <- # paperFigure
 df %>% 
 	ggplot(aes(sample = value)) + facet_wrap(freq~var, scales = 'free') + theme_bw() + RIG.themeLite()+
 	stat_qq_point(size = 1) +
 	stat_qq_line() +
 	#stat_qq_band(alpha = 0.5, con = 0.95, bandType = "boot") + 
 	labs(x = "Theoretical Quantiles", y = "Sample Quantiles",
-			 title = 'Q-Q plots for annual and quarterly GDP growth, \nstock return and long-term Treasury bond return') 
+			 title = 'Q-Q plots for annual and quarterly GDP growth, \nstock return and long-term Treasury bond return',
+			 caption = "Source: Federal Reserve Bank of St. Louis, Federal Reserve Economic Data; SBBI Yearbook 2016.") 
 fig_qqplot	
 
 
 
-ggsave(paste0(dir_outputs, "fig_data_stock.gdp.png"), fig_stock.gdp, width = 10*0.95, height = 5*0.95)
-ggsave(paste0(dir_outputs, "fig_data_gbond.gdp.png"), fig_gbond.gdp, width = 10*0.95, height = 5*0.95)
-ggsave(paste0(dir_outputs, "fig_data_corr_stock.gbond.png"), fig_corr_stock.gbond, width = 10*0.95, height = 5*0.95)
-ggsave(paste0(dir_outputs, "fig_data_qqplot.png"), fig_qqplot, width = 10, height = 7)
+ggsave(paste0(dir_outputs, "fig_data_stock.gdp.png"), fig_stock.gdp, width = 10*0.95, height = 5.3*0.95)
+ggsave(paste0(dir_outputs, "fig_data_gbond.gdp.png"), fig_gbond.gdp, width = 10*0.95, height = 5.3*0.95)
+ggsave(paste0(dir_outputs, "fig_data_corr_stock.gbond.png"), fig_corr_stock.gbond, width = 10*0.95, height = 5.3*0.95)
+ggsave(paste0(dir_outputs, "fig_data_qqplot.png"), fig_qqplot, width = 10, height = 7.5)
 
 
 df_stock_q$dl_gdp_o %>% hist(20)

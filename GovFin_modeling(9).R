@@ -930,9 +930,10 @@ df_cyclePct %>%
 	#guides(col = guide_legend(ncol = 3, byrow = TRUE))
 # geom_hline(yintercept = 1, linetype = 2)
 
+fig_cyclePct
 
 
-fig_cyclePct2 <- 
+fig_cyclePct2 <- # paperFigure 
 df_cyclePct %>% 
 	select(year, 
 				 GDP_cyclePct, 
@@ -1013,7 +1014,8 @@ df_decomp_real2	%>%
 	scale_color_manual(values = c(color_PIT, color_GDP, RIG.red)) + 
 	labs(x = NULL, y = "Percent", color = NULL,
 			 title    = "Cyclical changes in state personal income tax, GDP and capital gains",
-			 subtitle = "(Real growth rate calculated based on 2009 dollar)") + 
+			 subtitle = "(Real growth rate calculated based on 2009 dollar)",
+			 caption  = "Source: \nFederal Reserve Bank of St. Louis, FRED;\nU.S. Census Bureau, Annual Survey of State and Local Government Finances") + 
 	theme(legend.position = "bottom")
 fig_cycle_PIT
 
@@ -1118,7 +1120,7 @@ df_decomp_real2	%>%
 	theme(legend.position = "bottom")
 
 
-fig_cycle_sales <- 
+fig_cycle_sales <- # paperFigure
 df_decomp_real2	%>% 
 	#filter(year >= 1988) %>% 
 	select(state_abb, year, GDP_dlogcycle, salesgen_dlogcycle, salessel_dlogcycle) %>% 
@@ -1133,12 +1135,13 @@ df_decomp_real2	%>%
 	scale_color_manual(values = c(color_salesgen, color_salessel, color_GDP)) + 
 	labs(x = NULL, y = "Percent", color = NULL,
 			 title = "Cyclical changes in sales taxes and GDP", 
-			 subtitle = "(Real growth rate calculated based on 2009 dollar)") + 
+			 subtitle = "(Real growth rate calculated based on 2009 dollar)",
+			 caption  = "Source: \nFederal Reserve Bank of St. Louis, Federal Reserve Economic Data;\nU.S. Census Bureau, Annual Survey of State and Local Government Finances.") + 
 	theme(legend.position = "bottom")
 fig_cycle_sales
 
 
-ggsave(paste0(dir_fig_out, "fig_GovFin_cycle_sales.png"), fig_cycle_sales, width = 10*0.8, height = 6*0.8)
+ggsave(paste0(dir_fig_out, "fig_GovFin_cycle_sales.png"), fig_cycle_sales, width = 10*0.8, height = 6.5*0.8)
 
 
 
@@ -1177,11 +1180,12 @@ df_decomp_real2	%>%
 	scale_color_manual(values = c(color_other, color_GDP)) + 
 	labs(x = NULL, y = "Percent", color = NULL,
 			 title = "Real growth rates of non-personal-income-non-sales taxes and GDP",
-			 subtitle = "(Real growth rate calculated based on 2009 dollar)") + 
+			 subtitle = "(Real growth rate calculated based on 2009 dollar)",
+			 caption  = "Source: \nFederal Reserve Bank of St. Louis, Federal Reserve Economic Data;\nU.S. Census Bureau, Annual Survey of State and Local Government Finances.") + 
 	theme(legend.position = "bottom")
 fig_cycle_other
 
-ggsave(paste0(dir_fig_out, "fig_GovFin_cycle_other.png"), fig_cycle_other, width = 10*0.8, height = 6*0.8)
+ggsave(paste0(dir_fig_out, "fig_GovFin_cycle_other.png"), fig_cycle_other, width = 10*0.8, height = 6.5*0.8)
 
 
 
@@ -1268,7 +1272,7 @@ df_decomp_real2 %>%
 
 # Trend taxes as % of trend GDP
 
-fig_trend_pctGDP <- 
+fig_trend_pctGDP <- # paperFigure
 df_decomp_real2 %>% # PIT vs gen sales as % of GDP
 	select(year, 
 				 PIT_GDP_trend, 
@@ -1296,7 +1300,11 @@ df_decomp_real2 %>% # PIT vs gen sales as % of GDP
 	scale_color_manual(values = c(color_PIT, color_salesgen, color_salessel, color_other, color_propertyLoc)) + 
 	labs(x = NULL, y = "Percent of GDP", color = NULL,
 			 title = "Trends in taxes as a percentage of GDP ",
-			 subtitle = "Calculated using real values (2009 dollar)") + 
+			 subtitle = "Calculated using real values (2009 dollar)",
+			 caption = "Note: Trends are estimated using HP filter.
+Source: 
+      Federal Reserve Bank of St. Louis, Federal Reserve Economic Data; 
+      U.S. Census Bureau, Annual Survey of State and Local Government Finances.") + 
 	theme(legend.position = "bottom") + 
 	guides(col = guide_legend(ncol = 3, byrow = TRUE))
 # geom_hline(yintercept = 1, linetype = 2)
@@ -1348,7 +1356,7 @@ df_decomp_real2 %>% # PIT vs gen sales as % of GDP
 
 
 # Trend growth rates, grid plot
-fig_trend_growth <- 
+fig_trend_growth <- # paperFigure
 df_decomp_real2 %>% # 
 	select(year, 
 				 PIT_dlogtrend, 
@@ -1383,18 +1391,22 @@ df_decomp_real2 %>% #
 	scale_color_manual(values = c("blue", color_GDP)) + 
 	labs(x = NULL, y = "Growth rate (%)", color = NULL, shape = NULL,
 			 title = "Trend real growth of GDP and tax revenues",
-			 subtitle = "Real growth calculated based on 2009 dollar") + 
+			 subtitle = "Real growth calculated based on 2009 dollar",
+			 caption = "Note: Trends are estimated using HP filter.
+Source: 
+      Federal Reserve Bank of St. Louis, Federal Reserve Economic Data; 
+      U.S. Census Bureau, Annual Survey of State and Local Government Finances.") + 
 	theme(legend.position = "bottom")
 fig_trend_growth
 
 
-ggsave(paste0(dir_fig_out, "fig_GovFin_trend_pctGDP.png"), fig_trend_pctGDP, width = 10*0.9, height = 7*0.9)
-ggsave(paste0(dir_fig_out, "fig_GovFin_trend_growth.png"), fig_trend_growth, width = 8*0.9, height = 10*0.9)
+ggsave(paste0(dir_fig_out, "fig_GovFin_trend_pctGDP.png"), fig_trend_pctGDP, width = 10*0.9, height = 7.5*0.9)
+ggsave(paste0(dir_fig_out, "fig_GovFin_trend_growth.png"), fig_trend_growth, width = 8*0.9, height = 11*0.9)
 
 
 
 
-#*******************************************************************************
+1770.#*******************************************************************************
 #     Regression analysis US: PIT               ####
 #*******************************************************************************
 

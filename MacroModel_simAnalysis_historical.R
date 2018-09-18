@@ -488,30 +488,31 @@ cor(sim_results$df_sim_stockreturn_y$return_y,  sim_results$df_sim_bondreturn_y$
 library(qqplotr)
 
 nsim_plot  <- 50
-# nyear_hist <- 62
+nyear_hist <- 62
 
 df_qqplot_sim <-
 bind_rows(
 	 df_stock_y %>% select(value = dl_gdp_o)    %>% mutate(type = "Historical", var = 'GDP growth' ),
-	(sim_results$df_sim_gdp_y %>% select(value = return_y) %>% mutate(type = 'Simulated',  var = 'GDP growth'))[1:(nsim_plot*nyear),],  # plot based on 50 simulations
+	(sim_results$df_sim_gdp_y %>% select(value = return_y) %>% mutate(type = 'Simulated',  var = 'GDP growth'))[1:(nsim_plot*nyear_hist),],  # plot based on 50 simulations
 
 	df_stock_y %>% select(value = return_tot_o ) %>% mutate(type = "Historical", var = 'Stock return'),
-	(sim_results$df_sim_stockreturn_y %>% select(value = return_y) %>% mutate(type = 'Simulated',   var = 'Stock return'))[1:(nsim_plot*nyear),],  # plot based on 50 simulations
+	(sim_results$df_sim_stockreturn_y %>% select(value = return_y) %>% mutate(type = 'Simulated',   var = 'Stock return'))[1:(nsim_plot*nyear_hist),],  # plot based on 50 simulations
 
 	df_stock_y           %>% select(value = dl_gbond_o) %>% mutate(type = "Historical", var = 'Bond return'),
-	(sim_results$df_sim_bondreturn_y %>% select(value = return_y)   %>% mutate(type = 'Simulated',  var = 'Bond return'))[1:(nsim_plot*nyear),]  # plot based on 50 simulations
+	(sim_results$df_sim_bondreturn_y %>% select(value = return_y)   %>% mutate(type = 'Simulated',  var = 'Bond return'))[1:(nsim_plot*nyear_hist),]  # plot based on 50 simulations
 	)
 df_qqplot_sim %>% head
 
 
-fig_qqplot_simGDP <-
+fig_qqplot_simGDP <- # paperFigure
 	df_qqplot_sim %>% filter(var == 'GDP growth') %>%
 	ggplot(aes(sample = value)) + facet_wrap(var~type, scales = 'fixed') + theme_bw() + RIG.themeLite()+
 	stat_qq_point(size = 1) +
 	stat_qq_line() +
 	#stat_qq_band(alpha = 0.5, con = 0.95, bandType = "boot") +
 	labs(x = "Theoretical Quantiles", y = "Sample Quantiles",
-			 title = 'Comparing Q-Q plots of historical annual GDP growth and simulated annual GDP growth')
+			 title = 'Comparing Q-Q plots of historical annual GDP growth and simulated annual GDP growth',
+			 caption = "Source of historical data: Federal Reserve Bank of St. Louis, Federal Reserve Economic Data.")
 fig_qqplot_simGDP
 
 
@@ -522,7 +523,8 @@ fig_qqplot_simStock <-
 	stat_qq_line() +
 	#stat_qq_band(alpha = 0.5, con = 0.95, bandType = "boot") +
 	labs(x = "Theoretical Quantiles", y = "Sample Quantiles",
-			 title = 'Comparing Q-Q plots of historical annual stock return and simulated annual stock return')
+			 title = 'Comparing Q-Q plots of historical annual stock return and simulated annual stock return',
+			 caption = "Source of historical data: SBBI Yearbook, 2016.")
 fig_qqplot_simStock
 
 
@@ -533,15 +535,16 @@ fig_qqplot_simBond <-
 	stat_qq_line() +
 	#stat_qq_band(alpha = 0.5, con = 0.95, bandType = "boot") +
 	labs(x = "Theoretical Quantiles", y = "Sample Quantiles",
-			 title = 'Comparing Q-Q plots of historical annual bond return and simulated annual bond return')
+			 title = 'Comparing Q-Q plots of historical annual bond return and simulated annual bond return',
+			 caption = "Source of historical data: SBBI Yearbook, 2016.")
 fig_qqplot_simBond
 
 
 
 
-ggsave(paste0(dir_outputs, "fig_MacroModel_qqplot_simGDP_historical.png"),   fig_qqplot_simGDP,   width = 10*0.95, height = 5.5*0.95)
-ggsave(paste0(dir_outputs, "fig_MacroModel_qqplot_simStock_historical.png"), fig_qqplot_simStock, width = 10*0.95, height = 5.5*0.95)
-ggsave(paste0(dir_outputs, "fig_MacroModel_qqplot_simBond._historical.png"), fig_qqplot_simBond,  width = 10*0.95, height = 5.5*0.95)
+ggsave(paste0(dir_outputs, "fig_MacroModel_qqplot_simGDP_historical.png"),   fig_qqplot_simGDP,   width = 10*0.95, height = 5.8*0.95)
+ggsave(paste0(dir_outputs, "fig_MacroModel_qqplot_simStock_historical.png"), fig_qqplot_simStock, width = 10*0.95, height = 5.8*0.95)
+ggsave(paste0(dir_outputs, "fig_MacroModel_qqplot_simBond._historical.png"), fig_qqplot_simBond,  width = 10*0.95, height = 5.8*0.95)
 
 
 df_sim_descriptive <-
