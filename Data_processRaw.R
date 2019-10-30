@@ -101,6 +101,11 @@ df_dataAll %<>%
 				 # LCap_DI  = LCap_TRI/lag(LCap_TRI) * lag(LCap_CAI) - LCap_CAI
 	)
 
+df_dataAll %<>% 
+	mutate(LCap_TRI_real      = LCap_TRI      / Inflation_Index,
+				 LCapStock_TRI_real = LCapStock_TRI / Inflation_Index)
+
+
 
 
 
@@ -143,7 +148,8 @@ df4 <-
 
 
 
-df_dataAll_q <- df_dataAll %>% filter(month %in% c(3, 6, 9, 12))
+df_dataAll_q  <- df_dataAll %>% filter(month %in% c(3, 6, 9, 12))
+df_dataAll_q2 <- df_dataAll %>% filter(month %in% c(1, 4, 7, 10))
 df_dataAll_y <- df_dataAll %>% filter(month %in% 6)
 
 
@@ -154,7 +160,7 @@ df_dataAll_y <- df_dataAll %>% filter(month %in% 6)
 #                 save data               ####
 #**********************************************************************
 
-save(df_dataAll, df_dataAll_q, df_dataAll_y, 
+save(df_dataAll, df_dataAll_q, df_dataAll_q2, df_dataAll_y, 
 		 file =  paste0(dir_data_out, "dataAll.RData"))
 
 

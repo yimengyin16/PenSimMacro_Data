@@ -125,6 +125,7 @@ fn <- function(df){
 	  			 value   = ifelse(is.na(value), 0, value)) %>% 
 		rename(state = State)
 }
+
 Rev_urban_SL_tot_nom %<>% fn %>% mutate(type = "SL") 
 Rev_urban_L_tot_nom  %<>% fn %>% mutate(type = "local") 
 Rev_urban_S_tot_nom  %<>% fn %>% mutate(type = "state") 
@@ -356,8 +357,6 @@ save(Rev_urban_tot_nom,
 		  
 		 file = paste0(dir_data_raw, "dataRaw_RevGSP.RData"))
 
-
-df_dataAll_y %>% head()
 
 
 

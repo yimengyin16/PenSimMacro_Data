@@ -1,10 +1,10 @@
 
 
 # 0. Data
-  # 0.1 Data_LoadRawData.R:        data_raw/dataRaw.RData 
-  # 0.2 Data_LoadRawTaxRev.R       data_raw/dataRaw_RevGSP.RData"
-  # 0.3 Data_processRaw.R          data_out/dataAll.RData
-  # 0.4 Data_processRaw_RevGSP.R   data_out/Data_RevGSP.RData
+  # 0.1 Data_LoadRawData.R:        outputs: data_raw/dataRaw.RData 
+  # 0.2 Data_LoadRawTaxRev.R       outputs: data_raw/dataRaw_RevGSP.RData
+  # 0.3 Data_processRaw.R          outputs: data_out/dataAll.RData
+  # 0.4 Data_processRaw_RevGSP.R   outputs: data_out/Data_RevGSP.RData
 
 
 # 1. Macro model: GDP growth and asset returns

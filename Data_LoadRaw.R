@@ -66,7 +66,7 @@ FRED_vars <- c(
   "TB3MS",           # 3-Month Treasury-bill: secondary market rate, monthly
   "GS2",             # 2-Year  Treasury constant maturity rate
   "GS10",            # 10-Year Treasury constant maturity rate
-  "GS20",            # 10-Year Treasury constant maturity rate
+  "GS20",            # 20-Year Treasury constant maturity rate
   "GS30",            # 30-Year Treasury constant maturity rate
   
   "CPIAUCSL",        # CPI-U, seasonally adjusted
@@ -217,7 +217,7 @@ fn <- function(fileName, varName, cells){
 }
 
 
-df_SBBI_AppendB <- 
+df_SBBI_AppendB <-  
 		sapply(SBBI_AppendB_vars, fn, fileName = SBBI_AppendB_file, cells = SBBI_AppendB_cell, simplify = FALSE) %>% 
 		bind_rows() %>%
 	  mutate(varName = factor(varName, levels = SBBI_AppendB_vars)) %>% 

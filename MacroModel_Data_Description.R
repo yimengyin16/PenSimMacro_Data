@@ -174,6 +174,7 @@ Vars <- c("year", "month", "yearMon",
 					"TBill3m_FRED", 
 					"Tbond10y_FRED",
 					"LCapStock_TRI",
+					"LCapStock_TRI_real",
 					"LCapStock_CAI",
 					"CBond_TRI",
 					"LTGBond_TRI",
@@ -182,16 +183,18 @@ Vars <- c("year", "month", "yearMon",
 
 
 fn <- function(df, year_range, rolling_width, freq){
-	df_stock_m <- 
+	# df_stock_m <- 
 		df %>% 
 		select(one_of(Vars)) %>% 
 		filter(year %in% year_range) %>% 
-		mutate(return_tot = (1 + get_logReturn(LCapStock_TRI))^freq - 1,
+		mutate(return_tot      = (1 + get_logReturn(LCapStock_TRI))^freq - 1,
+					 return_tot_real = (1 + get_logReturn(LCapStock_TRI_real))^freq - 1,
 					 dl_gdp     = (1 + get_logReturn(GDP_FRED))^freq - 1,
 					 dl_cbond    = (1 + get_logReturn(CBond_TRI))^freq - 1,
 					 dl_gbond    = (1 + get_logReturn(LTGBond_TRI))^freq - 1,
 					 
-					 return_tot_o = get_logReturn(LCapStock_TRI),
+					 return_tot_o      = get_logReturn(LCapStock_TRI),
+					 return_tot_real_o = get_logReturn(LCapStock_TRI_real),
 					 dl_gdp_o     = get_logReturn(GDP_FRED),
 					 dl_cbond_o   = get_logReturn(CBond_TRI),
 					 dl_gbond_o   = get_logReturn(LTGBond_TRI),
@@ -202,6 +205,8 @@ fn <- function(df, year_range, rolling_width, freq){
 					 ERP_10y    = return_tot - Tbond10y_FRED) %>% 
 		mutate(sd_return    = rollapply(return_tot, rolling_width, sd,   align = "right", fill = NA),
 					 mean_return  = rollapply(return_tot, rolling_width, mean, align = "right", fill = NA),
+					 sd_return_real    = rollapply(return_tot_real, rolling_width, sd,   align = "right", fill = NA),
+					 mean_return_real  = rollapply(return_tot_real, rolling_width, mean, align = "right", fill = NA),
 					 sd_ERP_3m    = rollapply(ERP_3m, rolling_width, sd,    align = "right", fill = NA),
 					 mean_ERP_3m  = rollapply(ERP_3m, rolling_width, mean,  align = "right", fill = NA),
 					 sd_ERP_10y   = rollapply(ERP_10y, rolling_width, sd,   align = "right", fill = NA),
@@ -219,9 +224,14 @@ df_stock_q <- fn(df_dataAll_q, 1953:2015, 12, 4)  # 3 year rolling
 df_stock_y <- fn(df_dataAll_y, 1953:2015, 5,  1)  # 5 year rolling
 
 
+#df_dataAll_q()
+
 # # save data in feather format for python use
 # write_feather(df_stock_q, "data_out/df_stock_q.feather" )
 # df_stock_q$dl_gdp_o
+
+
+df_stock_q %>% select(year, yearMon, return_tot, return_tot_real) %>% filter(year>= 1980)
 
 
 
@@ -256,9 +266,41 @@ fn_fig <- function(df){
 	  fig
 }
 
+fn_fig_real <- function(df){
+	fig <- 
+		df %>% 
+		select(yearMon, 
+					 sd_return_real,  mean_return_real,
+					 sd_ERP_10y, mean_ERP_10y) %>% 
+		gather(var, value, -yearMon) %>% 
+		mutate(type = case_when(
+			str_detect(var, "return") ~ "return",
+			str_detect(var, "ERP_3m") ~ "ERP_3m",
+			str_detect(var, "ERP_10y") ~ "ERP_10y",
+			TRUE ~ ""
+		),
+		Stat = case_when(
+			str_detect(var, "sd") ~ "sd",
+			str_detect(var, "mean") ~ "mean")) %>% 
+		ggplot() + theme_bw()+ 
+		facet_grid(type~.)+
+		geom_line(aes(x = yearMon , y = value, color = Stat)) +
+		geom_rect(data = recessionPeriods, 
+							aes(xmin = peak, xmax = trough, 
+									ymin = -Inf, ymax = Inf), alpha = 0.4, fill = "grey") +
+		scale_x_continuous(breaks = seq(1950, 2020, 5))
+	fig
+}
+
 df_stock_m %>% fn_fig  # sd: 12 months rolling
 df_stock_q %>% fn_fig  # sd: 12 quarters rolling
 df_stock_y %>% fn_fig  # sd: 5 years rolling
+
+df_stock_m %>% fn_fig_real  # sd: 12 months rolling
+df_stock_q %>% fn_fig_real  # sd: 12 quarters rolling
+df_stock_y %>% fn_fig_real  # sd: 5 years rolling
+
+
 
 
 # GDP, stock return and volatiltiy
@@ -377,6 +419,7 @@ fig_corr_stock.gbond
 #'   - correlation is generally negative after 2000, with strong swings.  
 #' No obvious pattern in relation to business cycles
 #' The only observed sharp rise in correlation is in the middle of the Great Recession. 
+
 
 
 ## qqplot for stock return bond return and GDP growth
@@ -879,6 +922,9 @@ regime_q <- bind_cols(yearMon = index_q, regime_q)
 usrec       <- feather("data_out/usrec.feather") %>% as.tibble()
 usrec_index <- feather("data_out/usrec_index.feather") %>% as.tibble
 
+usrec 
+usrec_index
+
 usrec_index %<>% 
 	rename(dt = '0') %>% 
 	transmute(yearMon = as.yearmon(dt)) 
@@ -907,12 +953,24 @@ df_stock_q <- fn(df_dataAll_q, 1953:2015, 12, 4)
 df_stock_m %<>% left_join(usrec_m) 
 df_stock_q %<>% left_join(usrec_q) 
 
+
+# Mean and variance of stock returns based on NBER recessions
+ # Nominal
 df_stock_q %>% 
 	select(yearMon, return_tot_o, USREC) %>% 
   filter(!is.na(USREC) & !is.na(return_tot_o)) %>% 
 	group_by(USREC) %>% 
 	summarise(avg = mean(return_tot_o),
-						std = sd(return_tot_o))
+						std = sd(return_tot_o),
+						var = var(return_tot_o))
+ # Real
+df_stock_q %>% 
+	select(yearMon, return_tot_real_o, USREC) %>% 
+	filter(!is.na(USREC) & !is.na(return_tot_real_o)) %>% 
+	group_by(USREC) %>% 
+	summarise(avg = mean(return_tot_real_o),
+						std = sd(return_tot_real_o),
+						var = var(return_tot_real_o))
 
 
 # Mean and variance of stock returns based on MS model of stock return
@@ -981,16 +1039,6 @@ f(df, rec3_smoothed)
 #            mean       std
 # expansion: 0.028    0.0723
 # recession: 0.0027   0.122
-
-
-
-
-
-
-
-
-
-
 
 
 
