@@ -292,6 +292,16 @@ df <-
 na2zero <- function(x){replace(x, is.na(x), 0)}
 
 
+
+df %>% filter(year == 1, sim ==1) %>% select(runname, ERC_tax_GDPState_a1)
+
+
+df %>%
+	group_by(runname, sim) %>% 
+	
+
+
+
 df_risk <- 
 	df %>%
 	group_by(runname, sim) %>%
@@ -920,9 +930,6 @@ results_all %>%
 #*********************************************************************************************************
 
 df_all.stch %>% names
-
-
-
 
 
 Table_risk_DC75_port <- 

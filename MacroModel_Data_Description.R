@@ -167,7 +167,7 @@ load(paste0(dir_data_out, "dataAll.RData"))
 
 get_logReturn <- function(x){
 	if(any(x <= 0, na.rm = TRUE)) stop("Nagative value(s)")
-	log(x/lag(x))
+	log(x/dplyr::lag(x))
 }
 
 Vars <- c("year", "month", "yearMon", 
@@ -971,6 +971,19 @@ df_stock_q %>%
 	summarise(avg = mean(return_tot_real_o),
 						std = sd(return_tot_real_o),
 						var = var(return_tot_real_o))
+
+
+# Real
+df_stock_q %>% 
+	select(yearMon, dl_gdp_o, USREC) %>% 
+	filter(!is.na(USREC) & !is.na(dl_gdp_o)) %>% 
+	group_by(USREC) %>% 
+	summarise(avg = mean(dl_gdp_o),
+						std = sd(dl_gdp_o),
+						var = var(dl_gdp_o))
+
+df_stock_q$dl_gdp_o %>% sd(na.rm = T)
+
 
 
 # Mean and variance of stock returns based on MS model of stock return

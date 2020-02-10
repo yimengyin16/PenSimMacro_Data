@@ -456,7 +456,7 @@ print(res_stock_nom.expected_durations)
 
 # stock model: real
 mod_stock_real = sm.tsa.MarkovRegression(dta_stock['1953-04-01':'2015-10-01'], k_regimes = 2, switching_variance =  True)
-res_stock_real = mod_stock.fit(search_reps = 40, search_iter = 30, maxiter=1000)
+res_stock_real = mod_stock_real.fit(search_reps = 40, search_iter = 30, maxiter=1000)
 print(res_stock_real.summary())
 print(res_stock_real.expected_durations)
 

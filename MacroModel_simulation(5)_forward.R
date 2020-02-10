@@ -143,60 +143,60 @@ load(paste0(dir_data_out, "dataAll.RData"))
 
 get_logReturn <- function(x){
 	if(any(x <= 0, na.rm = TRUE)) stop("Nagative value(s)")
-	log(x/lag(x))
+	log(x/dplyr::lag(x))
 }
 
-Vars <- c("year", "month", "yearMon", 
-					"TBill3m_FRED", 
-					"Tbond10y_FRED",
-					"LCapStock_TRI",
-					"LCapStock_CAI",
-					"CBond_TRI",
-					"LTGBond_TRI",
-					"Inflation_Index",
-					"GDP_FRED")
-
-
-fn <- function(df, year_range, rolling_width, freq){
-	df_stock_m <- 
-		df %>% 
-		select(one_of(Vars)) %>% 
-		filter(year %in% year_range) %>% 
-		mutate(return_tot = (1 + get_logReturn(LCapStock_TRI))^freq - 1,
-					 dl_gdp     = (1 + get_logReturn(GDP_FRED))^freq - 1,
-					 dl_cbond    = (1 + get_logReturn(CBond_TRI))^freq - 1,
-					 dl_gbond    = (1 + get_logReturn(LTGBond_TRI))^freq - 1,
-					 
-					 return_tot_o = get_logReturn(LCapStock_TRI),
-					 dl_gdp_o     = get_logReturn(GDP_FRED),
-					 dl_cbond_o   = get_logReturn(CBond_TRI),
-					 dl_gbond_o   = get_logReturn(LTGBond_TRI),
-					 
-					 TBill3m_FRED =  TBill3m_FRED/100,
-					 Tbond10y_FRED = Tbond10y_FRED/100,
-					 ERP_3m     = return_tot - TBill3m_FRED,
-					 ERP_10y    = return_tot - Tbond10y_FRED) %>% 
-		mutate(sd_return    = rollapply(return_tot, rolling_width, sd,   align = "right", fill = NA),
-					 mean_return  = rollapply(return_tot, rolling_width, mean, align = "right", fill = NA),
-					 sd_ERP_3m    = rollapply(ERP_3m, rolling_width, sd,    align = "right", fill = NA),
-					 mean_ERP_3m  = rollapply(ERP_3m, rolling_width, mean,  align = "right", fill = NA),
-					 sd_ERP_10y   = rollapply(ERP_10y, rolling_width, sd,   align = "right", fill = NA),
-					 mean_ERP_10y = rollapply(ERP_10y, rolling_width, mean, align = "right", fill = NA),
-					 sd_cbond     = rollapply(dl_cbond, rolling_width, sd,   align = "right", fill = NA),
-					 mean_cbond   = rollapply(dl_cbond, rolling_width, mean, align = "right", fill = NA),
-					 sd_gbond     = rollapply(dl_gbond, rolling_width, sd,   align = "right", fill = NA),
-					 mean_gbond   = rollapply(dl_gbond, rolling_width, mean, align = "right", fill = NA),
-					 mean_gdp     = rollapply(dl_gdp, rolling_width, mean,  align = "right", fill = NA)
-		)
-}
-
-df_stock_m <- fn(df_dataAll,   1953:2015, 12, 12)
-df_stock_q <- fn(df_dataAll_q, 1953:2015, 12, 4)
-df_stock_y <- fn(df_dataAll_y, 1953:2015, 5,  1)
+# Vars <- c("year", "month", "yearMon", 
+# 					"TBill3m_FRED", 
+# 					"Tbond10y_FRED",
+# 					"LCapStock_TRI",
+# 					"LCapStock_CAI",
+# 					"CBond_TRI",
+# 					"LTGBond_TRI",
+# 					"Inflation_Index",
+# 					"GDP_FRED")
+# 
+# 
+# fn <- function(df, year_range, rolling_width, freq){
+# 	df_stock_m <- 
+# 		df %>% 
+# 		select(one_of(Vars)) %>% 
+# 		filter(year %in% year_range) %>% 
+# 		mutate(return_tot = (1 + get_logReturn(LCapStock_TRI))^freq - 1,
+# 					 dl_gdp     = (1 + get_logReturn(GDP_FRED))^freq - 1,
+# 					 dl_cbond    = (1 + get_logReturn(CBond_TRI))^freq - 1,
+# 					 dl_gbond    = (1 + get_logReturn(LTGBond_TRI))^freq - 1,
+# 					 
+# 					 return_tot_o = get_logReturn(LCapStock_TRI),
+# 					 dl_gdp_o     = get_logReturn(GDP_FRED),
+# 					 dl_cbond_o   = get_logReturn(CBond_TRI),
+# 					 dl_gbond_o   = get_logReturn(LTGBond_TRI),
+# 					 
+# 					 TBill3m_FRED =  TBill3m_FRED/100,
+# 					 Tbond10y_FRED = Tbond10y_FRED/100,
+# 					 ERP_3m     = return_tot - TBill3m_FRED,
+# 					 ERP_10y    = return_tot - Tbond10y_FRED) %>% 
+# 		mutate(sd_return    = rollapply(return_tot, rolling_width, sd,   align = "right", fill = NA),
+# 					 mean_return  = rollapply(return_tot, rolling_width, mean, align = "right", fill = NA),
+# 					 sd_ERP_3m    = rollapply(ERP_3m, rolling_width, sd,    align = "right", fill = NA),
+# 					 mean_ERP_3m  = rollapply(ERP_3m, rolling_width, mean,  align = "right", fill = NA),
+# 					 sd_ERP_10y   = rollapply(ERP_10y, rolling_width, sd,   align = "right", fill = NA),
+# 					 mean_ERP_10y = rollapply(ERP_10y, rolling_width, mean, align = "right", fill = NA),
+# 					 sd_cbond     = rollapply(dl_cbond, rolling_width, sd,   align = "right", fill = NA),
+# 					 mean_cbond   = rollapply(dl_cbond, rolling_width, mean, align = "right", fill = NA),
+# 					 sd_gbond     = rollapply(dl_gbond, rolling_width, sd,   align = "right", fill = NA),
+# 					 mean_gbond   = rollapply(dl_gbond, rolling_width, mean, align = "right", fill = NA),
+# 					 mean_gdp     = rollapply(dl_gdp, rolling_width, mean,  align = "right", fill = NA)
+# 		)
+# }
+# 
+# df_stock_m <- fn(df_dataAll,   1953:2015, 12, 12)
+# df_stock_q <- fn(df_dataAll_q, 1953:2015, 12, 4)
+# df_stock_y <- fn(df_dataAll_y, 1953:2015, 5,  1)
 
 
 # save data in feather format for python use
-write_feather(df_stock_q, "data_out/df_stock_q.feather" )
+# write_feather(df_stock_q, "data_out/df_stock_q.feather" )
 df_stock_q$dl_gdp_o
 
 
@@ -407,7 +407,6 @@ replicate(10, rmarkovchain(n = 4*30, object = mc_gdp, t0 = '1'))
 # gdp.std_1  <- 5.463e-05^0.5 # 0.007391211
 
 
-
 simInputs_historical <- 
 	list(
 		nyear = 30,
@@ -454,15 +453,15 @@ simInputs_forward <-
 		mc_gdp = mc_gdp,
 		
 		# Stock: expansion
-		s.mean_0 = 0.032 - 0.00656,  #  0.02544
-		s.std_0  = 0.069 ,
+		s.mean_0 = 0.024 - 0.002702 ,  #  0.021298
+		s.std_0  = 0.057 + 0.015,
 		
 		# Stock: recession
-		s.mean_1 = -0.014 - 0.00656, # -0.0205
-		s.std_1  = 0.119,
+		s.mean_1 = -0.027 - 0.002702, # -0.0205
+		s.std_1  = 0.107 + 0.015,
 		
 		# Bond
-		b.mean  = 0.009086, # 
+		b.mean  = 0.00417,  #0.009086, # 
 		b.std   = 0.02, #  0.04/2
 		
 		# Correlation between error terms(deviation from mean) of stock and bond returns
@@ -487,9 +486,12 @@ simInputs_forward <-
   # adjustment: 0.007562 - 0.004776 = 0.002786
 
 # Stock:
-  # Target:  1.08145^0.25 - 1 =  0.01976854
-  # current: 1.1095593^0.25 - 1 = 0.02633
-  # adjustment: 0.00656146
+  # Target:  1.06145^0.25 - 1    = 0.015021
+  # current: 1.07279975^0.25 - 1 = 0.017723
+  # adjustment: 0.002702
+
+# bond
+  # Target: (1.016+0.04^2/2)^0.25
 
 
 #***********************************************************************************
@@ -500,7 +502,7 @@ simInputs_forward <-
 # sim_name  <- "sim_results_historical"
 
 simInputs <- simInputs_forward
-sim_name  <- "MacroModel_sim_results_forward"
+sim_name  <- "MacroModel_sim_results_forward_real"
 
 
 
@@ -579,7 +581,6 @@ cor(cbind(as.vector(sim_bondreturn), as.vector(sim_stockreturn)))
 
 
 
-
 #' TO what extent the simulation approach is capable of generating economic and investment return
 #' scenarios with statistical characteristics that are similar to historical data.
 
@@ -649,6 +650,26 @@ sim_results <- list(
 )
 
 
+df_sim_stockreturn_y$return_y %>% mean 
+
+df_sim_stockreturn_y %>%
+	group_by(sim) %>%
+	summarise(geoMean = get_geoReturn(return_y),
+						std     = sd(return_y)) %>%
+	summarise(geoMean = median(geoMean),
+						std     = median(std))
+# 
+# 
+df_sim_bondreturn_y %>%
+	group_by(sim) %>%
+	summarise(geoMean = get_geoReturn(return_y),
+						std     = sd(return_y)) %>%
+	summarise(geoMean = median(geoMean),
+						std     = median(std))
+
+
+
+
 assign(sim_name, sim_results)
 
 
@@ -665,19 +686,12 @@ assign(sim_name, sim_results)
 save(sim_results,
 		 file = paste0(dir_data_out, sim_name, ".RData"))
 
-# sim_name
-# 
-# 
-# df_sim_stockreturn_y$return_y %>% mean(na.rm = T)
-# 
-# 
-# df_sim_stockreturn_y %>% 
-# 	group_by(sim) %>% 
-# 	summarise(geoMean = get_geoReturn(return_y),
-# 						std     = sd(return_y)) %>% 
-# 	summarise(geoMean = median(geoMean),
-# 						std     = median(std))
-# 
+sim_name
+
+
+
+
+
 
 
 

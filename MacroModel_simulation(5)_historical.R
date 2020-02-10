@@ -26,7 +26,7 @@ library(markovchain) # Markov chain object
 library(MASS)        # multivariate normal generator, must be loaded before tidyverse, otherwise 'select' will be masked
 
 
-library(tidyverse)
+
 library(broom)
 library(readxl)
 library(magrittr)
@@ -63,6 +63,7 @@ library(psych) # describe
 library(xlsx)
 library(qqplotr)
 
+library(tidyverse)
 # check tidyquant, timetk, sweep (broom ), tibbletime
 # Intro to zoo  cran.r-project.org/web/packages/zoo/vignettes/zoo-quickref.pdf
 # sweep: http://www.business-science.io/code-tools/2017/07/09/sweep-0-1-0.html
@@ -332,8 +333,8 @@ df_stock_q$dl_gdp_o
 #                 1. Global parameters for simulation                    ####
 #***********************************************************************************
 
-# nyear <- 30
-# nsim  <- 2000
+nyear <- 30
+nsim  <- 2000
 
 
 #***********************************************************************************
@@ -410,23 +411,23 @@ replicate(10, rmarkovchain(n = 4*30, object = mc_gdp, t0 = '1'))
 
 simInputs_historical <- 
 	list(
-		nyear = 30,
-		nsim  = 2000,
+		nyear = 70,
+		nsim  = 5000,
 		
 		# Markov Chain object for GDP
 		mc_gdp = mc_gdp,
 		
 		# Stock: expansion
-		s.mean_0 = 0.032,
-		s.std_0  = 0.069 ,
+		s.mean_0 = 0.024,
+		s.std_0  = 0.07 ,
 		
 		# Stock: recession
-		s.mean_1 = -0.014,
+		s.mean_1 = -0.027,
 		s.std_1  = 0.119,
 		
 		# Bond
-		b.mean  = 0.016, #0.035/4
-		b.std   = 0.051, #0.04/2
+		b.mean  = 0.0074, #0.035/4
+		b.std   = 0.0524, #0.04/2
 		
 		# Correlation between error terms(deviation from mean) of stock and bond returns
 		# (Calibration needed)
@@ -499,9 +500,8 @@ simInputs_forward <-
 # simInputs <- simInputs_historical
 # sim_name  <- "sim_results_historical"
 
-simInputs <- simInputs_forward
-sim_name  <- "MacroModel_sim_results_forward"
-
+simInputs <- simInputs_historical
+sim_name  <- "MacroModel_sim_results_historical_real"
 
 
 
@@ -578,8 +578,6 @@ cor(cbind(as.vector(sim_bondreturn), as.vector(sim_stockreturn)))
 
 
 
-
-
 #' TO what extent the simulation approach is capable of generating economic and investment return
 #' scenarios with statistical characteristics that are similar to historical data.
 
@@ -592,7 +590,7 @@ cor(cbind(as.vector(sim_bondreturn), as.vector(sim_stockreturn)))
 
 ## Convert quarterly returns / growth into annual values (quarterly returns compounded within a year)
 
-nyear <- simInputs$nyear
+nyear <- simInputs_historical$nyear
 
 df_sim_stockreturn_q <- 
 	as.data.frame(sim_stockreturn) %>% 
@@ -662,22 +660,14 @@ assign(sim_name, sim_results)
 # 	   df_sim_bondreturn_y,
 # 	   df_sim_gdp_y,
 # 	   df_sim_gdp_regimes_y,
-save(sim_results,
+save(MacroModel_sim_results_historical_real,
 		 file = paste0(dir_data_out, sim_name, ".RData"))
 
-# sim_name
-# 
-# 
-# df_sim_stockreturn_y$return_y %>% mean(na.rm = T)
-# 
-# 
-# df_sim_stockreturn_y %>% 
-# 	group_by(sim) %>% 
-# 	summarise(geoMean = get_geoReturn(return_y),
-# 						std     = sd(return_y)) %>% 
-# 	summarise(geoMean = median(geoMean),
-# 						std     = median(std))
-# 
+
+
+
+
+
 
 
 

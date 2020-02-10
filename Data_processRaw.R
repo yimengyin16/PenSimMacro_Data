@@ -103,7 +103,8 @@ df_dataAll %<>%
 
 df_dataAll %<>% 
 	mutate(LCap_TRI_real      = LCap_TRI      / Inflation_Index,
-				 LCapStock_TRI_real = LCapStock_TRI / Inflation_Index)
+				 LCapStock_TRI_real = LCapStock_TRI / Inflation_Index,
+				 CBond_TRI_real     = CBond_TRI / Inflation_Index)
 
 
 

@@ -1505,7 +1505,8 @@ fig_GDP2taxes <-
 	scale_shape_manual(values = c(15, 16, 17, 18)) + 
 	labs(x = NULL, y = "Real growth", color = NULL, shape = NULL,
 			 title = "Cycles in GDP growth and tax revenues",
-			 subtitle = "Calculated using real values (2009 dollar)") + 
+			 subtitle = "Calculated using real values (2009 dollar)",
+			 caption  = "Source: \nFederal Reserve Bank of St. Louis, FRED;\nU.S. Census Bureau, Annual Survey of State and Local Government Finances") + 
 	theme(legend.position = "bottom") 
 #guides(col = guide_legend(ncol = 3, byrow = TRUE))
 # geom_hline(yintercept = 1, linetype = 2)
@@ -1699,9 +1700,9 @@ fig_PITstockCapgains <-
 			 subtitle = NULL,
 			 caption  = "Source:\nSBBI Yearbook 2016;\nU.S. Census Bureau, Annual Survey of State and Local Government Finances") + 
 	theme(legend.position = "bottom")
-fig_PITstockCaptains
+fig_PITstockCapgains
 
-ggsave(paste0(dir_fig_out, "fig_GovFin_stockCaptains.png"), fig_PITstockCapgains , width = 10*0.8, height = 6*0.8)
+ggsave(paste0(dir_fig_out, "fig_GovFin_stockCapgains.png"), fig_PITstockCapgains , width = 10*0.8, height = 6*0.8)
 
 
 
@@ -1905,7 +1906,7 @@ fig_cycle_sales <- # paperFigure
 	theme(legend.position = "bottom")
 fig_cycle_sales
 
-ggsave(paste0(dir_fig_out, "fig_GovFin_cycle_sales.png"), fig_cycle_sales, width = 10*0.8, height = 6.5*0.8)
+ggsave(paste0(dir_fig_out, "fig_GovFin_cycle_sales_dl.png"), fig_cycle_sales, width = 10*0.8, height = 6.5*0.8)
 
 
 
@@ -2243,7 +2244,7 @@ fig_cycle_other <-
 	theme(legend.position = "bottom")
 fig_cycle_other
 
-ggsave(paste0(dir_fig_out, "fig_GovFin_cycle_other.png"), fig_cycle_other, width = 10*0.8, height = 6.5*0.8)
+ggsave(paste0(dir_fig_out, "fig_GovFin_cycle_other_dl.png"), fig_cycle_other, width = 10*0.8, height = 6.5*0.8)
 
 
 
